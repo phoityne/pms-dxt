@@ -1,0 +1,55 @@
+{
+  "dxt_version": "0.2.0",
+  "name": "pms-dxt",
+  "display_name": "pty-mcp-server",
+  "version": "0.0.1",
+  "description": "pty-mcp-server is a Haskell implementation of an MCP (Model Context Protocol) server that enables AI agents to dynamically acquire and control PTY (pseudo-terminal) sessions, allowing interaction with real system environments through terminal-based interfaces.",
+  "author": {
+    "name": "phoityne.hs@gmail.com",
+    "email": "phoityne.hs@gmail.com",
+    "url": "https://github.com/phoityne"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phoityne/pms-dxt"
+  },
+  "homepage": "https://github.com/phoityne/pms-dxt",
+  "documentation": "https://github.com/phoityne/pms-dxt",
+  "support": "https://github.com/phoityne/pms-dxt/issues",
+  "icon": "https://github.com/phoityne/pms-dxt/images/HaskellLogo.png",
+  "server": {
+    "type": "binary",
+    "entry_point": "bin/pty-mcp-server",
+    "mcp_config": {
+      "command": "${__dirname}/bin/pty-mcp-server",
+      "args": ["-y", "${__dirname}/pty-mcp-server.yaml"],
+      "env": {}
+    }
+  },
+  "tools": [
+  ],
+  "tools_generated": true,
+  "prompts": [
+  ],
+  "prompts_generated": true,
+  "keywords": [
+    "pty",
+    "ssh",
+    "telnet",
+    "haskell",
+    "cabal",
+    "ghc",
+    "ghci",
+    "mcp",
+    "ai",
+    "model context protocol",
+    "process",
+    "iac",
+    "infrastructure as code",
+    "network",
+    "system",
+    "serial",
+    "scripts"
+  ],
+  "license": "Apache License Version 2.0"
+}

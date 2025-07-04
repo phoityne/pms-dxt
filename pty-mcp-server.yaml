@@ -1,0 +1,10 @@
+logDir : "pty-mcp-server/logs"
+logLevel : "Debug"
+toolsDir : "pty-mcp-server/tools"
+promptsDir : "pty-mcp-server/prompts"
+resourcesDir : "pty-mcp-server/resources"
+prompts:
+  - ">>>"
+  - "]#"
+  - "]$"
+  - "ghci>"
