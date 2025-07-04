@@ -29,6 +29,17 @@ To extract it manually:
 
 This allows you to use the included command-line tools directly, outside of Claude Code.
 
+> ⚠ **Note**  
+> The included executable files are currently built **only for Windows**.  
+> They will not run on macOS or Linux.  
+> Support for additional platforms may be added in the future.
+>
+> If you see a DLL error when running a tool, you may need to install the  
+> **Microsoft Visual C++ Redistributable** from:  
+> [https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) 
+>  
+
+----
 
 # pty-mcp-server
 
@@ -86,35 +97,32 @@ The server communicates exclusively via **standard input/output (stdio)**, ensur
 
 #### Available Tools
 - **`pty-connect`**  
-  Launches any command through a PTY interface with optional arguments.  
-  Great for general-purpose terminal automation.
+  Runs a command via a pseudo-terminal (pty) to interact with external tools or services, with optional arguments.
 
 - **`pty-terminate`**  
   Forcefully terminates an active pseudo-terminal (PTY) connection.
 
 - **`pty-message`**  
-  Sends input to an existing PTY session (e.g., `df -k`) without needing full context of the current terminal state.  
-  Abstracts interaction in a programmable way.
+  pms-messages is a tool for sending structured instructions or commands to a running PTY session. It abstracts direct terminal input, allowing the LLM (MCP client) to interact with the PTY process in a controlled and programmable way.
 
 - **`pty-bash`**  
-  Starts an interactive Bash shell (`/bin/bash -i -l`) in a pseudo-terminal.  
-  Empowers AI to execute shell commands like a real user.
+  pty-bash is a tool that launches a bash shell in a pseudo terminal (PTY). It allows the LLM (MCP client) to interact with a real Linux shell in an interactive terminal (PTY). This enables AI to run system commands, collect information, and handle prompts or TUI-based tools as if operated by a human, making it effective for dynamic Linux-based automation and diagnostics.
 
 - **`pty-ssh`**  
-  Opens a remote SSH session via PTY, enabling access to remote systems.  
-  Accepts user/host and SSH flags as arguments.
+  Establishes an SSH session in a pseudo-terminal with the specified arguments, allowing interaction with remote systems.
+
+- **`pty-telnet`**  
+  Launches the telnet command within a pseudo-terminal (PTY) session. This allows interactive communication with a remote Telnet server, enabling the AI to respond to prompts such as 'login:' or 'Password:' just like a human user. The PTY environment ensures that the terminal behaves like a real TTY device, which is required for many Telnet servers.
 
 - **`pty-cabal`**  
   Launches a cabal repl session within a specified project directory, loading a target Haskell file.  
   Supports argument passing and live code interaction.
 
 - **`pty-stack`**  
-  Launches a stack repl session within a specified project directory, loading a target Haskell file.  
-  Supports argument passing and live code interaction.
+  Launches a stack repl session in a pseudo-terminal using the specified project directory, main source file, and arguments.
 
 - **`pty-ghci`**  
-  Launches a GHCi session within a specified project directory, loading a target Haskell file.  
-  Supports argument passing and live code interaction.
+  Launches a GHCi session in a pseudo-terminal using the specified project directory, main source file, and arguments.
 
 - **`proc-spawn`**  
   Spawns an external process using the specified arguments and enables interactive communication via standard input and output. Unlike PTY-based execution, this communicates directly with the process using the runProcess function without allocating a pseudo-terminal. Suitable for non-TUI, stdin/stdout-based interactive programs.
@@ -124,6 +132,33 @@ The server communicates exclusively via **standard input/output (stdio)**, ensur
 
 - **`proc-message`**  
   Sends structured text-based instructions or commands to a subprocess started with runProcess. It provides a programmable interface for interacting with the process via standard input.
+
+- **`proc-cmd`**  
+  The `proc-cmd` tool launches the Windows Command Prompt (`cmd.exe`) as a subprocess. It allows the AI to interact with the standard Windows shell environment, enabling execution of batch commands, file operations, and system configuration tasks in a familiar terminal interface.
+
+- **`proc-ps`**  
+  `proc-ps` launches the Windows PowerShell (`powershell.exe`) as a subprocess. It provides an interactive command-line environment where the AI can execute PowerShell commands, scripts, and system administration tasks. The shell is started with default options to keep it open and ready for further input.
+
+- **`proc-ssh`**  
+  `proc-ssh` launches an SSH client (`ssh`) as a subprocess using `runProcess`. It enables the AI to initiate remote connections to other systems via the Secure Shell protocol. The tool can be used to execute remote commands, access remote shells, or tunnel services over SSH. The required `arguments` field allows specifying the target user, host, and any SSH options (e.g., `-p`, `-i`, `-L`).
+
+- **`socket-open`**  
+  This tool initiates a socket connection to the specified host and port.
+
+- **`socket-close`**  
+  This tool close active socket connection that was previously established using the 'socket-opne' tool.
+
+- **`socket-read`**  
+  Reads the specified number of bytes from the socket. The 'size' parameter indicates how many bytes to read.
+
+- **`socket-write`**  
+  Write a sequence of bytes to the socket
+
+- **`socket-message`**  
+  This tool sends a specified string to the active socket connection, then waits for a recognizable prompt from the remote side. Upon detecting the prompt, it captures and returns all output received prior to it.
+
+- **`socket-telnet`**  
+  A simple Telnet-like communication tool over raw TCP sockets. This tool connects to a specified host and port, sends and receives data, and removes any Telnet IAC (Interpret As Command) sequences from the communication stream. Note: This is a simplified Telnet implementation and does not support full Telnet protocol features.
 
 - **`Scriptable CLI Integration`**  
   The `pty-mcp-server` supports execution of shell scripts associated with registered tools defined in `tools-list.json`. Each tool must be registered by name, and a corresponding shell script (`.sh`) should exist in the configured `tools/` directory.
@@ -138,7 +173,6 @@ The server communicates exclusively via **standard input/output (stdio)**, ensur
 
 > **Note:**  
 > Commands starting with `pty-` are not supported on Windows. These tools rely on POSIX-style pseudo terminals (PTY), which are not natively available in the Windows environment.
-
 
 ### Running with Podman or Docker
 
@@ -399,67 +433,3 @@ Runtime values and control flow are displayed to help verify logic and observe i
 Integration with pty-msp-server enables automated runtime inspection for Haskell applications.
 
 ---
-
-## Architecture Guide (Software Architecture and Technical Details)
-
-### Architectural Strategy
-
-The architecture of the `pty-mcp-server` project is designed with medium-to-large scale systems in mind. Emphasis is placed on **modularity**, **maintainability**, and **scalability**, especially in environments involving multiple teams or organizations.
-
-To achieve these goals, the system is structured as a collection of well-separated packages, each responsible for a specific concern or domain. This package-oriented design provides several strategic benefits.
-
-The overall package structure adheres to the principles of **Onion Architecture**, reflecting a layered design that places the domain model at the core. Furthermore, the **internal module structure within each package** is also guided by a layered approach, maintaining clear separation between pure data definitions, domain services, and infrastructure concerns.
-
-### Role of `pty-mcp-server` as a Dependency Injector
-
-In addition to managing REPL communication, `pty-mcp-server` is **not merely an executable module**, but also acts as a **dependency injector** for the entire system.
-
-- It is capable of **referencing all relevant PMS packages**, including those that it depends on.
-- This allows it to **construct and wire together application components** across multiple packages and modules in a unified manner.
-- By centralizing this dependency resolution, `pty-mcp-server` provides a single point of control over **cross-cutting dependencies**, improving visibility and control over the system architecture.
-
-As a result, inter-package and inter-module dependencies can be **centrally coordinated and managed**, which promotes better encapsulation, reusability, and testability throughout the system.
-
-### Dependencies
-
-This package depends on the following packages:  
-- [`pms-ui-request`](https://github.com/phoityne/pms-ui-request)
-- [`pms-ui-response`](https://github.com/phoityne/pms-ui-response)
-- [`pms-ui-notification`](https://github.com/phoityne/pms-ui-notification)
-- [`pms-infrastructure`](https://github.com/phoityne/pms-infrastructure)
-- [`pms-infra-cmdrun`](https://github.com/phoityne/pms-infra-cmdrun)
-- [`pms-infra-watch`](https://github.com/phoityne/pms-infra-watch)
-- [`pms-application-service`](https://github.com/phoityne/pms-application-service)
-- [`pms-domain-service`](https://github.com/phoityne/pms-domain-service)
-- [`pms-domain-model`](https://github.com/phoityne/pms-domain-model)
-
-### Rationale for Package Separation
-
-- **Clear Interface Definition**  
-  Each package exposes only its minimal, well-defined public API. This enforces clean module boundaries and reduces unintended dependencies between components.
-
-- **Team and Vendor Ownership**  
-  In larger projects, different teams or external vendors can own specific packages. Clear separation ensures well-defined responsibilities and supports collaborative development across organizational boundaries.
-
-- **Repository and Release Independence**  
-  Packages can be split into separate repositories and versioned independently. This allows for modular development and flexible release workflows, reducing build times and simplifying integration.
-
-- **Improved Maintainability and Extensibility**  
-  By isolating concerns, the impact of code changes is limited to relevant modules. This minimizes regressions and facilitates safe, incremental improvements over time.
-
-### Intended Use Cases
-
-- Medium-to-large scale enterprise systems involving multiple developers or teams  
-- Modular systems with independent development and release cycles for components  
-- Projects that require long-term maintainability, extensibility, and isolation of concerns
-
-This architecture follows a layered and modular approach. Domain models, domain services, application logic, and infrastructure concerns are each encapsulated in their own package, enabling clean composition while preserving separation of responsibilities.
-
-
-### Deployment Diagram
-![Deployment Diagram](https://raw.githubusercontent.com/phoityne/pty-mcp-server/main/docs/01-1.png)
-
-### Package Structure
-![Package Structure](https://raw.githubusercontent.com/phoityne/pty-mcp-server/main/docs/01-2.png)
-
-----
