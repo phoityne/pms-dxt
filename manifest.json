@@ -16,7 +16,7 @@
   "homepage": "https://github.com/phoityne/pms-dxt",
   "documentation": "https://github.com/phoityne/pms-dxt",
   "support": "https://github.com/phoityne/pms-dxt/issues",
-  "icon": "https://github.com/phoityne/pms-dxt/images/HaskellLogo.png",
+  "icon": "https://github.com/phoityne/pms-dxt/blob/main/images/HaskellLogo.png",
   "server": {
     "type": "binary",
     "entry_point": "bin/pty-mcp-server",
