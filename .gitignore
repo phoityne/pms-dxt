@@ -1,3 +1,4 @@
 .dxtignore
 *.pem
 *.key
+bin/*.exe
