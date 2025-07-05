@@ -16,7 +16,7 @@
   "homepage": "https://github.com/phoityne/pms-dxt",
   "documentation": "https://github.com/phoityne/pms-dxt",
   "support": "https://github.com/phoityne/pms-dxt/issues",
-  "icon": "https://github.com/phoityne/pms-dxt/blob/main/images/HaskellLogo.png",
+  "icon": "images/HaskellLogo.png",
   "server": {
     "type": "binary",
     "entry_point": "bin/pty-mcp-server",
@@ -27,6 +27,10 @@
     }
   },
   "tools": [
+    {
+      "name": "pms_hello",
+      "description": "hello world from pty-mcp-server."
+    }
   ],
   "tools_generated": true,
   "prompts": [
