@@ -3,7 +3,7 @@
 # openssl genrsa -out ca.key 4096
 # openssl req -x509 -new -key ca.key -sha256 -days 3650 -out cert.pem
 
-version="0.0.5.0"
+version=$1
 
 dxt pack . download/pty-mcp-server-${version}.dxt
 
