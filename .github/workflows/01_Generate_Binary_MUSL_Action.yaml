@@ -35,6 +35,7 @@ jobs:
           mkdir -p pms bin
 
       - name: Clone repositories
+        shell: bash
         run: |
           repos=(
             "pty-mcp-server"
@@ -52,7 +53,9 @@ jobs:
             "pms-domain-model"
           )
           for repo in "${repos[@]}"; do
-            git clone https://github.com/phoityne/$repo.git pms/$repo
+            dir="pms/$repo"
+            echo "Cloning $repo into $dir"
+            git clone https://github.com/phoityne/$repo.git "$dir"
           done
 
       - name: Configure cabal.project.local for static build
