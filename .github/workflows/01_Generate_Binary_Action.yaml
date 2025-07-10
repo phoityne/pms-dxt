@@ -76,7 +76,7 @@ jobs:
         working-directory: pms/pty-mcp-server
         run: |
           echo "package *" > cabal.project.local
-          echo "  ghc-options: -optl-static -optl-pthread" >> cabal.project.local
+          echo "  ghc-options: -optc -fPIC -optl-static -optl-pthread" >> cabal.project.local
 
       - name: Build
         working-directory: pms/pty-mcp-server
