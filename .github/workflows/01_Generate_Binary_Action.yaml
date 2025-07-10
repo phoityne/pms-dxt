@@ -1,0 +1,72 @@
+name: Generate Binary Action
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+#          - os: ubuntu-latest
+#            target: aarch64-unknown-linux-gnu
+#          - os: macos-latest
+#            target: x86_64-apple-darwin
+#          - os: macos-latest
+#            target: aarch64-apple-darwin
+#          - os: windows-latest
+#            target: x86_64-w64-mingw32
+
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up GHC & Cabal
+        uses: haskell/actions/setup@v2
+        with:
+          ghc-version: 9.6.7
+          cabal-version: 3.12.1.0
+
+      - name: Install system deps (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update || true
+          sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu
+
+      - name: Configure cross-compilation (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-musl)
+              echo "Using musl for static build"
+              ;;
+            aarch64-unknown-linux-gnu)
+              echo "Using aarch64 gcc"
+              ;;
+          esac
+
+      - name: Build
+        run: |
+          cabal update
+          cabal build all
+
+      - name: Copy and commit binary to bin folder
+        run: |
+          mkdir -p bin
+          cp $(cabal list-bin exe:pty-mcp-server) bin/pty-mcp-server-${{ matrix.target }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull origin main
+          git add bin/
+          git commit -m "Add binary for ${{ matrix.target }}" || echo "No changes to commit"
+          git push origin main
