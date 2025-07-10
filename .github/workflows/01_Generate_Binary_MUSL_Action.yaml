@@ -1,16 +1,15 @@
-name: Generate Static musl Binary
+name: Generate Binary MUSL Action
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-static-musl:
-    name: Build Static musl Binary
+  build:
+    name: Build static binary with musl
     runs-on: ubuntu-latest
 
     steps:
@@ -23,12 +22,12 @@ jobs:
           ghc-version: 9.6.7
           cabal-version: 3.12.1.0
 
-      - name: Install build dependencies
+      - name: Install system dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update || true
           sudo apt-get install -y musl-tools
 
-      - name: Prepare directories
+      - name: Prepare build directories
         run: |
           mkdir -p pms bin
 
@@ -36,25 +35,26 @@ jobs:
         run: |
           repos=("pty-mcp-server" \
                  "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
-                 "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
+                 "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" \
+                 "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
                  "pms-application-service" "pms-domain-service" "pms-domain-model")
 
           for repo in "${repos[@]}"; do
-            git clone https://github.com/phoityne/$repo.git "pms/$repo"
+            dir="pms/$repo"
+            echo "Cloning $repo into $dir"
+            git clone https://github.com/phoityne/$repo.git "$dir"
           done
 
       - name: Create cabal.project.local
         working-directory: pms/pty-mcp-server
         run: |
-          cat <<EOF > cabal.project.local
-package *
-  ghc-options: -optc -fPIC -optl-static -optl-pthread
-  cc-options: -static
-program-locations:
-  gcc: /usr/bin/musl-gcc
-EOF
+          echo "package *" > cabal.project.local
+          echo "  ghc-options: -optc -fPIC -optl-static -optl-pthread" >> cabal.project.local
+          echo "  cc-options: -static" >> cabal.project.local
+          echo "program-locations:" >> cabal.project.local
+          echo "  gcc: /usr/bin/musl-gcc" >> cabal.project.local
 
-      - name: Build all packages
+      - name: Build
         working-directory: pms/pty-mcp-server
         env:
           CC: /usr/bin/musl-gcc
@@ -62,14 +62,14 @@ EOF
           cabal update
           cabal build all
 
-      - name: Copy built binary
+      - name: Copy binary to bin/
         run: |
-          BIN=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
-          if [ -z "$BIN" ]; then
+          BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
+          if [ -z "$BIN_PATH" ]; then
             echo "Binary not found"
             exit 1
           fi
-          cp "$BIN" "bin/pty-mcp-server-x86_64-unknown-linux-musl"
+          cp "$BIN_PATH" bin/pty-mcp-server-x86_64-unknown-linux-musl
 
       - name: Commit and push binary
         run: |
@@ -77,5 +77,5 @@ EOF
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add static musl binary for x86_64-unknown-linux-musl" || echo "No changes"
+          git commit -m "Add static binary for x86_64-unknown-linux-musl" || echo "No changes to commit"
           git push origin main
