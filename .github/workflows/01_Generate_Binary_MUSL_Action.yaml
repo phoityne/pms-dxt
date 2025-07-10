@@ -1,0 +1,81 @@
+name: Generate Static musl Binary
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-static-musl:
+    name: Build Static musl Binary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+
+      - name: Set up GHC & Cabal
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: 9.6.7
+          cabal-version: 3.12.1.0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Prepare directories
+        run: |
+          mkdir -p pms bin
+
+      - name: Clone repositories
+        run: |
+          repos=("pty-mcp-server" \
+                 "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
+                 "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
+                 "pms-application-service" "pms-domain-service" "pms-domain-model")
+
+          for repo in "${repos[@]}"; do
+            git clone https://github.com/phoityne/$repo.git "pms/$repo"
+          done
+
+      - name: Create cabal.project.local
+        working-directory: pms/pty-mcp-server
+        run: |
+          cat <<EOF > cabal.project.local
+package *
+  ghc-options: -optc -fPIC -optl-static -optl-pthread
+  cc-options: -static
+program-locations:
+  gcc: /usr/bin/musl-gcc
+EOF
+
+      - name: Build all packages
+        working-directory: pms/pty-mcp-server
+        env:
+          CC: /usr/bin/musl-gcc
+        run: |
+          cabal update
+          cabal build all
+
+      - name: Copy built binary
+        run: |
+          BIN=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
+          if [ -z "$BIN" ]; then
+            echo "Binary not found"
+            exit 1
+          fi
+          cp "$BIN" "bin/pty-mcp-server-x86_64-unknown-linux-musl"
+
+      - name: Commit and push binary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull origin main
+          git add bin/
+          git commit -m "Add static musl binary for x86_64-unknown-linux-musl" || echo "No changes"
+          git push origin main
