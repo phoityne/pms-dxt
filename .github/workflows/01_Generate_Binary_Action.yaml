@@ -75,7 +75,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         working-directory: pms/pty-mcp-server
         run: |
-          echo "packages: ../pms-domain-service/" > cabal.project
           echo "package *" > cabal.project.local
           echo "  ghc-options: -optl-static -optl-pthread" >> cabal.project.local
 
