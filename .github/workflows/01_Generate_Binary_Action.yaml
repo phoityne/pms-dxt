@@ -51,50 +51,42 @@ jobs:
                  "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
                  "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
                  "pms-application-service" "pms-domain-service" "pms-domain-model")
-
           for repo in "${repos[@]}"; do
-            dir="pms/$repo"
-            echo "Cloning $repo into $dir"
-            git clone https://github.com/phoityne/$repo.git "$dir"
+            git clone https://github.com/phoityne/$repo.git pms/$repo
           done
 
-      - name: Configure build environment (Linux only)
-        if: matrix.os == 'ubuntu-latest'
-        working-directory: pms/pty-mcp-server
+      - name: Create cabal.project with cross options
+        working-directory: pms
         run: |
-          echo "package *" > cabal.project.local
-          echo "  ghc-options: -optc -fPIC -optl-static -optl-pthread" >> cabal.project.local
-
+          echo "packages:" > cabal.project
+          for dir in *; do
+            if [ -d "$dir" ]; then
+              echo "  $dir" >> cabal.project
+            fi
+          done
+          echo "" >> cabal.project
+          echo "program-locations:" >> cabal.project
           case "${{ matrix.target }}" in
             x86_64-unknown-linux-musl)
-              echo "program-locations:" >> cabal.project.local
-              echo "  gcc: /usr/bin/musl-gcc" >> cabal.project.local
+              echo "  gcc: /usr/bin/musl-gcc" >> cabal.project
               ;;
             aarch64-unknown-linux-gnu)
-              echo "program-locations:" >> cabal.project.local
-              echo "  gcc: /usr/bin/aarch64-linux-gnu-gcc" >> cabal.project.local
+              echo "  gcc: /usr/bin/aarch64-linux-gnu-gcc" >> cabal.project
               ;;
           esac
+          echo "" >> cabal.project
+          echo "package *" >> cabal.project
+          echo "  ghc-options: -optc -fPIC -optl-static -optl-pthread" >> cabal.project
 
-      - name: Build
-        working-directory: pms/pty-mcp-server
-        env:
-          CC: gcc
+      - name: Build all packages
+        working-directory: pms
         run: |
-          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-musl" ]; then
-            export CC=/usr/bin/musl-gcc
-          elif [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            export CC=/usr/bin/aarch64-linux-gnu-gcc
-          else
-            export CC=gcc
-          fi
-
           cabal update
           cabal build all
 
       - name: Copy binary to bin/
         run: |
-          BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
+          BIN_PATH=$(find pms/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
           if [ -z "$BIN_PATH" ]; then
             echo "Binary not found"
             exit 1
@@ -109,4 +101,3 @@ jobs:
           git add bin/
           git commit -m "Add static binary for ${{ matrix.target }}" || echo "No changes to commit"
           git push origin main
-
