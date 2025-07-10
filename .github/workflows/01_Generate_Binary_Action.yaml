@@ -41,25 +41,12 @@ jobs:
           sudo apt-get update || true
           sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu
 
-      - name: Configure cross-compilation (Linux only)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          case "${{ matrix.target }}" in
-            x86_64-unknown-linux-musl)
-              echo "Using musl for static build"
-              ;;
-            aarch64-unknown-linux-gnu)
-              echo "Using aarch64 cross compiler"
-              ;;
-          esac
-
       - name: Prepare build directories
         run: |
           mkdir -p pms bin
 
-      - name: Clone pty-mcp-server
+      - name: Clone repositories
         run: |
-          mkdir -p pms
           repos=("pty-mcp-server" \
                  "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
                  "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
@@ -71,15 +58,31 @@ jobs:
             git clone https://github.com/phoityne/$repo.git "$dir"
           done
 
-      - name: Configure static build (Linux only)
+      - name: Configure build environment (Linux only)
         if: matrix.os == 'ubuntu-latest'
         working-directory: pms/pty-mcp-server
         run: |
           echo "package *" > cabal.project.local
           echo "  ghc-options: -optc -fPIC -optl-static -optl-pthread" >> cabal.project.local
 
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-musl)
+              echo "program-locations:" >> cabal.project.local
+              echo "  gcc: /usr/bin/musl-gcc" >> cabal.project.local
+              ;;
+            aarch64-unknown-linux-gnu)
+              echo "program-locations:" >> cabal.project.local
+              echo "  gcc: /usr/bin/aarch64-linux-gnu-gcc" >> cabal.project.local
+              ;;
+          esac
+
       - name: Build
         working-directory: pms/pty-mcp-server
+        env:
+          CC: ${{ 
+            matrix.target == 'x86_64-unknown-linux-musl' && '/usr/bin/musl-gcc' || 
+            (matrix.target == 'aarch64-unknown-linux-gnu' && '/usr/bin/aarch64-linux-gnu-gcc' || '') 
+          }}
         run: |
           cabal update
           cabal build all
