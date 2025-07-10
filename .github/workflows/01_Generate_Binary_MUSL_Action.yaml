@@ -1,31 +1,34 @@
-name: Generate Binary MUSL Action
+name: Generate Static Binary on Alpine
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build:
-    name: Build static binary with musl
     runs-on: ubuntu-latest
+    container:
+      image: alpine:3.18
 
     steps:
       - name: Checkout current repository
         uses: actions/checkout@v4
 
-      - name: Set up GHC & Cabal
-        uses: haskell-actions/setup@v2
-        with:
-          ghc-version: 9.6.7
-          cabal-version: 3.12.1.0
-
-      - name: Install system dependencies
+      - name: Install build tools and dependencies
         run: |
-          sudo apt-get update || true
-          sudo apt-get install -y musl-tools
+          apk update
+          apk add --no-cache \
+            musl-dev \
+            gcc \
+            ghc \
+            cabal \
+            git \
+            bash \
+            make \
+            gmp-dev \
+            libffi-dev
 
       - name: Prepare build directories
         run: |
@@ -33,28 +36,34 @@ jobs:
 
       - name: Clone repositories
         run: |
-          repos=("pty-mcp-server" \
-                 "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
-                 "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" \
-                 "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
-                 "pms-application-service" "pms-domain-service" "pms-domain-model")
-
+          repos=(
+            "pty-mcp-server"
+            "pms-ui-request"
+            "pms-ui-response"
+            "pms-ui-notification"
+            "pms-infrastructure"
+            "pms-infra-cmdrun"
+            "pms-infra-procspawn"
+            "pms-infra-socket"
+            "pms-infra-watch"
+            "pms-infra-serial"
+            "pms-application-service"
+            "pms-domain-service"
+            "pms-domain-model"
+          )
           for repo in "${repos[@]}"; do
-            dir="pms/$repo"
-            echo "Cloning $repo into $dir"
-            git clone https://github.com/phoityne/$repo.git "$dir"
+            git clone https://github.com/phoityne/$repo.git pms/$repo
           done
 
-      - name: Create cabal.project.local
+      - name: Configure cabal.project.local for static build
         working-directory: pms/pty-mcp-server
         run: |
           echo "package *" > cabal.project.local
-          echo "  ghc-options: -optc -fPIC -optl-static -optl-pthread" >> cabal.project.local
-          echo "  cc-options: -static" >> cabal.project.local
+          echo "  ghc-options: -optl-static -optl-pthread" >> cabal.project.local
           echo "program-locations:" >> cabal.project.local
           echo "  gcc: /usr/bin/musl-gcc" >> cabal.project.local
 
-      - name: Build
+      - name: Build pty-mcp-server statically
         working-directory: pms/pty-mcp-server
         env:
           CC: /usr/bin/musl-gcc
@@ -62,20 +71,20 @@ jobs:
           cabal update
           cabal build all
 
-      - name: Copy binary to bin/
+      - name: Copy built binary to bin/
         run: |
           BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
           if [ -z "$BIN_PATH" ]; then
-            echo "Binary not found"
+            echo "Binary not found!"
             exit 1
           fi
           cp "$BIN_PATH" bin/pty-mcp-server-x86_64-unknown-linux-musl
 
-      - name: Commit and push binary
+      - name: Commit and push built binary
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add static binary for x86_64-unknown-linux-musl" || echo "No changes to commit"
+          git commit -m "Add static binary built on Alpine" || echo "No changes to commit"
           git push origin main
