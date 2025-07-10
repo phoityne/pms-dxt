@@ -36,7 +36,7 @@ jobs:
       - name: Set up GHC & Cabal
         uses: haskell-actions/setup@v2
         with:
-          ghc-version: 9.6.5
+          ghc-version: 9.6.7
           cabal-version: 3.12.1.0
 
       - name: Install system deps (Linux only)
@@ -57,19 +57,18 @@ jobs:
               ;;
           esac
 
-      - name: Build
-        run: |
-          cabal update
-          cabal build all
-
-      - name: Copy and commit binary to bin folder
+      - name: Install and commit binary
         run: |
           mkdir -p bin
-          cp $(cabal list-bin exe:pty-mcp-server) bin/pty-mcp-server-${{ matrix.target }}
+          cabal update
+          cabal install pty-mcp-server --installdir=./bin --overwrite-policy=always
+          mv ./bin/pty-mcp-server ./bin/pty-mcp-server-${{ matrix.target }}
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
           git commit -m "Add binary for ${{ matrix.target }}" || echo "No changes to commit"
           git push origin main
+
+
 
