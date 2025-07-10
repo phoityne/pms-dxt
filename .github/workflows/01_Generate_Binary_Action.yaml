@@ -1,9 +1,5 @@
 name: Generate Binary Action
 
-# on:
-#   push:
-#     branches: [main]
-#   workflow_dispatch:
 on:
   workflow_dispatch:
 
@@ -30,17 +26,16 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout
+      - name: Checkout current repository
         uses: actions/checkout@v4
 
       - name: Set up GHC & Cabal
         uses: haskell-actions/setup@v2
         with:
           ghc-version: 9.12.2
-          # ghc-version: 9.6.7
           cabal-version: 3.12.1.0
 
-      - name: Install system deps (Linux only)
+      - name: Install system dependencies (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update || true
@@ -54,22 +49,56 @@ jobs:
               echo "Using musl for static build"
               ;;
             aarch64-unknown-linux-gnu)
-              echo "Using aarch64 gcc"
+              echo "Using aarch64 cross compiler"
               ;;
           esac
 
-      - name: Install and commit binary
+      - name: Prepare build directories
         run: |
-          mkdir -p bin
+          mkdir -p pms bin
+
+      - name: Clone pty-mcp-server
+        run: |
+          mkdir -p pms
+          repos=("pty-mcp-server" \
+                 "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
+                 "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" \
+                 "pms-application-service" "pms-domain-service" "pms-domain-model")
+
+          for repo in "${repos[@]}"; do
+            dir="pms/$repo"
+            echo "Cloning $repo into $dir"
+            git clone https://github.com/phoityne/$repo.git "$dir"
+          done
+
+      - name: Configure static build (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: pms/pty-mcp-server
+        run: |
+          echo "packages: ../pms-domain-service/" > cabal.project
+          echo "package *" > cabal.project.local
+          echo "  ghc-options: -optl-static -optl-pthread" >> cabal.project.local
+
+      - name: Build
+        working-directory: pms/pty-mcp-server
+        run: |
           cabal update
-          cabal install pty-mcp-server --installdir=./bin --overwrite-policy=always
-          mv ./bin/pty-mcp-server ./bin/pty-mcp-server-${{ matrix.target }}
+          cabal build all
+
+      - name: Copy binary to bin/
+        run: |
+          BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
+          if [ -z "$BIN_PATH" ]; then
+            echo "Binary not found"
+            exit 1
+          fi
+          cp "$BIN_PATH" bin/pty-mcp-server-${{ matrix.target }}
+
+      - name: Commit and push binary
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add binary for ${{ matrix.target }}" || echo "No changes to commit"
+          git commit -m "Add static binary for ${{ matrix.target }}" || echo "No changes to commit"
           git push origin main
-
-
-
