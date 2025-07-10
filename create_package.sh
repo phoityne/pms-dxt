@@ -11,3 +11,5 @@ dxt sign --self-signed download/pty-mcp-server-${version}.dxt
 # dxt sign --cert cert.pem --key ca.key pty-mcp-server-${version}.dxt
 dxt info download/pty-mcp-server-${version}.dxt
 dxt verify download/pty-mcp-server-${version}.dxt
+
+exit 0
