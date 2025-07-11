@@ -2,3 +2,4 @@ create_package.sh
 *.pem
 *.key
 download/*
+.github
