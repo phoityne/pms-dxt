@@ -50,8 +50,14 @@ jobs:
 
       - name: Build and install GMP for musl
         run: |
-          # Add musl-tools directory to PATH to ensure musl-ar is found by libtool
-          export PATH="/usr/bin:${PATH}" # musl-ar is typically in /usr/bin after musl-tools install
+          # Find the absolute paths for musl-ar and musl-ranlib
+          MUSL_AR=$(which musl-ar)
+          MUSL_RANLIB=$(which musl-ranlib)
+
+          if [ -z "$MUSL_AR" ] || [ -z "$MUSL_RANLIB" ]; then
+            echo "Error: musl-ar or musl-ranlib not found. Please ensure musl-tools is correctly installed and in PATH."
+            exit 1
+          fi
 
           GMP_VERSION="6.3.0"
           for i in $(seq 1 5); do
@@ -63,7 +69,7 @@ jobs:
           tar -xf gmp-${GMP_VERSION}.tar.xz
           cd gmp-${GMP_VERSION}
           ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
-            CC=musl-gcc CXX=musl-g++ AR=musl-ar RANLIB=musl-ranlib
+            CC=musl-gcc CXX=musl-g++ AR="${MUSL_AR}" RANLIB="${MUSL_RANLIB}"
           make -j$(nproc)
           sudo make install
         shell: bash
