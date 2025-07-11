@@ -42,8 +42,22 @@ jobs:
         working-directory: pms/pty-mcp-server
         run: |
           echo "package *" > cabal.project.local
-          echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC" >> cabal.project.local
+          echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC -L/usr/local/musl/lib" >> cabal.project.local
           echo "  cc-options: -static -fno-PIC" >> cabal.project.local
+          echo "  extra-lib-dirs: /usr/local/musl/lib" >> cabal.project.local
+          echo "  extra-include-dirs: /usr/local/musl/include" >> cabal.project.local
+        shell: bash
+
+      - name: Build and install GMP for musl
+        run: |
+          GMP_VERSION="6.3.0"
+          wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz
+          tar -xf gmp-${GMP_VERSION}.tar.xz
+          cd gmp-${GMP_VERSION}
+          ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
+            CC=musl-gcc CXX=musl-g++ AR=musl-ar RANLIB=musl-ranlib
+          make -j$(nproc)
+          sudo make install
         shell: bash
 
       - name: Build statically
@@ -53,12 +67,11 @@ jobs:
           LD: musl-gcc
           AR: musl-ar
           RANLIB: musl-ranlib
-          CFLAGS: "-static -fno-PIC"
-          LDFLAGS: "-static -Wl,--static -Wl,-no-pie"
-          PKG_CONFIG_PATH: /usr/lib/musl/pkgconfig:/usr/local/lib/musl/pkgconfig # Ensure pkg-config uses musl paths
+          CFLAGS: "-static -fno-PIC -I/usr/local/musl/include"
+          LDFLAGS: "-static -Wl,--static -Wl,-no-pie -L/usr/local/musl/lib"
+          PKG_CONFIG_PATH: /usr/lib/musl/pkgconfig:/usr/local/lib/musl/pkgconfig:/usr/local/musl/lib/pkgconfig
         shell: bash
         run: |
           ~/.ghcup/bin/cabal update
-          # Explicitly configure all packages with musl-gcc and disable shared libraries
-          ~/.ghcup/bin/cabal configure --disable-shared --with-gcc=musl-gcc all
+          ~/.ghcup/bin/cabal configure --disable-shared --enable-static --with-gcc=musl-gcc all
           ~/.ghcup/bin/cabal build all --disable-shared --disable-executable-dynamic
