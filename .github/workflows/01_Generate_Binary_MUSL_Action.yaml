@@ -30,6 +30,21 @@ jobs:
           ghcup set cabal 3.10.1.0
         shell: bash
 
+      - name: Build and install GMP for musl
+        run: |
+          GMP_VERSION="6.3.0"
+          wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz
+          tar -xf gmp-${GMP_VERSION}.tar.xz
+          cd gmp-${GMP_VERSION}
+          ./configure \
+            --host=x86_64-linux-musl \
+            --disable-shared \
+            --enable-static \
+            --prefix=/usr/local/musl \
+            CC=musl-gcc
+          make -j$(nproc)
+          sudo make install
+          
       - name: Clone PMS Repos
         shell: bash
         run: |
