@@ -16,10 +16,7 @@ jobs:
       - name: Install musl toolchain and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y musl-tools llvm binutils wget curl git build-essential
-          # musl-ar/musl-ranlib は存在しないのでllvm-arで代用
-          sudo ln -s /usr/bin/llvm-ar /usr/bin/musl-ar
-          sudo ln -s /usr/bin/llvm-ranlib /usr/bin/musl-ranlib
+          sudo apt-get install -y musl-tools build-essential curl wget gcc make autoconf libtool pkg-config
         shell: bash
 
       - name: Install ghcup and GHC
@@ -34,48 +31,32 @@ jobs:
         shell: bash
 
       - name: Clone PMS Repos
-        shell: bash
         run: |
           mkdir -p pms bin
-          repos=(
-            pty-mcp-server
-            pms-ui-request
-            pms-ui-response
-            pms-ui-notification
-            pms-infrastructure
-            pms-infra-cmdrun
-            pms-infra-procspawn
-            pms-infra-socket
-            pms-infra-watch
-            pms-infra-serial
-            pms-application-service
-            pms-domain-service
-            pms-domain-model
-          )
+          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-procspawn pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
           for repo in "${repos[@]}"; do
             git clone https://github.com/phoityne/$repo.git pms/$repo
           done
-
-      - name: Build and install GMP for musl
-        env:
-          AR: /usr/bin/musl-ar
-          RANLIB: /usr/bin/musl-ranlib
-        run: |
-          GMP_VERSION="6.3.0"
-          for i in $(seq 1 5); do
-            wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && break
-            echo "Download failed, retrying in 10 seconds... (Attempt $i/5)"
-            sleep 10
-          done || { echo "Failed to download GMP after multiple retries."; exit 1; }
-          tar -xf gmp-${GMP_VERSION}.tar.xz
-          cd gmp-${GMP_VERSION}
-          ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
-            CC=/usr/bin/musl-gcc CXX=/usr/bin/musl-g++ AR=/usr/bin/musl-ar RANLIB=/usr/bin/musl-ranlib
-          make -j$(nproc)
-          sudo make install
         shell: bash
 
-      - name: Set static build flags for cabal
+      - name: Build and install GMP for musl
+        run: |
+          GMP_VERSION="6.3.0"
+          wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz
+          tar -xf gmp-${GMP_VERSION}.tar.xz
+          cd gmp-${GMP_VERSION}
+          ./configure --host=x86_64-linux-musl --build=x86_64-linux-gnu --disable-shared --enable-static --prefix=/usr/local/musl \
+            CC=musl-gcc AR=musl-ar RANLIB=musl-ranlib
+          make -j$(nproc)
+          sudo make install
+          cd ..
+        shell: bash
+        env:
+          CC: musl-gcc
+          AR: musl-ar
+          RANLIB: musl-ranlib
+
+      - name: Set static build flags
         working-directory: pms/pty-mcp-server
         run: |
           echo "package *" > cabal.project.local
@@ -85,7 +66,7 @@ jobs:
           echo "  extra-include-dirs: /usr/local/musl/include" >> cabal.project.local
         shell: bash
 
-      - name: Build statically with musl-gcc
+      - name: Build statically
         working-directory: pms/pty-mcp-server
         env:
           CC: musl-gcc
@@ -95,11 +76,11 @@ jobs:
           CFLAGS: "-static -fno-PIC -I/usr/local/musl/include"
           LDFLAGS: "-static -Wl,--static -Wl,-no-pie -L/usr/local/musl/lib"
           PKG_CONFIG_PATH: /usr/lib/musl/pkgconfig:/usr/local/lib/musl/pkgconfig:/usr/local/musl/lib/pkgconfig
-        shell: bash
         run: |
           ~/.ghcup/bin/cabal update
           ~/.ghcup/bin/cabal configure --disable-shared --enable-static --with-gcc=musl-gcc all
           ~/.ghcup/bin/cabal build all --disable-shared --disable-executable-dynamic
+        shell: bash
 
       - name: Copy built binary to bin/
         run: |
@@ -109,6 +90,7 @@ jobs:
             exit 1
           fi
           cp "$BIN_PATH" bin/pty-mcp-server-x86_64-unknown-linux-musl
+        shell: bash
 
       - name: Commit and push built binary
         run: |
@@ -116,5 +98,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add static binary built on musl-gcc" || echo "No changes to commit"
+          git commit -m "Add static binary built on Alpine" || echo "No changes to commit"
           git push origin main
+        shell: bash
