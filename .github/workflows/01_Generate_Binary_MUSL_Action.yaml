@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p pms bin
-          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
+          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-procspawn pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
           for repo in "${repos[@]}"; do
             git clone https://github.com/phoityne/$repo.git pms/$repo
           done
@@ -43,32 +43,8 @@ jobs:
         working-directory: pms/pty-mcp-server
         run: |
           echo "package *" > cabal.project.local
-          echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC -L/usr/local/musl/lib" >> cabal.project.local
+          echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC" >> cabal.project.local
           echo "  cc-options: -static -fno-PIC" >> cabal.project.local
-          echo "  extra-lib-dirs: /usr/local/musl/lib" >> cabal.project.local
-          echo "  extra-include-dirs: /usr/local/musl/include" >> cabal.project.local
-        shell: bash
-
-      - name: Build and install GMP for musl
-        env:
-          # Keep AR and RANLIB in env for general make commands, but also pass to configure
-          AR: /usr/bin/musl-ar
-          RANLIB: /usr/bin/musl-ranlib
-        run: |
-          GMP_VERSION="6.3.0"
-          for i in $(seq 1 5); do
-            wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && break
-            echo "Download failed, retrying in 10 seconds... (Attempt $i/5)"
-            sleep 10
-          done || { echo "Failed to download GMP after multiple retries."; exit 1; }
-
-          tar -xf gmp-${GMP_VERSION}.tar.xz
-          cd gmp-${GMP_VERSION}
-          # Explicitly provide full paths to musl tools to configure script
-          ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
-            CC=/usr/bin/musl-gcc CXX=/usr/bin/musl-g++ AR=/usr/bin/musl-ar RANLIB=/usr/bin/musl-ranlib
-          make -j$(nproc)
-          sudo make install
         shell: bash
 
       - name: Build statically
@@ -78,9 +54,9 @@ jobs:
           LD: musl-gcc
           AR: musl-ar
           RANLIB: musl-ranlib
-          CFLAGS: "-static -fno-PIC -I/usr/local/musl/include"
-          LDFLAGS: "-static -Wl,--static -Wl,-no-pie -L/usr/local/musl/lib"
-          PKG_CONFIG_PATH: /usr/lib/musl/pkgconfig:/usr/local/lib/musl/pkgconfig:/usr/local/musl/lib/pkgconfig
+          CFLAGS: "-static -fno-PIC"
+          LDFLAGS: "-static -Wl,--static -Wl,-no-pie"
+          PKG_CONFIG_PATH: /usr/lib/musl/pkgconfig:/usr/local/lib/musl/pkgconfig
         shell: bash
         run: |
           ~/.ghcup/bin/cabal update
