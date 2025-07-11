@@ -6,6 +6,7 @@
 version=$1
 
 dxt pack . download/pty-mcp-server-${version}.dxt
+
 cp -p download/pty-mcp-server-${version}.dxt download/pty-mcp-server-${version}.zip
 
 dxt sign --self-signed download/pty-mcp-server-${version}.dxt
