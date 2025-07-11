@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p pms bin
-          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-procspawn pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
+          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
           for repo in "${repos[@]}"; do
             git clone https://github.com/phoityne/$repo.git pms/$repo
           done
@@ -51,7 +51,7 @@ jobs:
 
       - name: Build and install GMP for musl
         env:
-          # Explicitly set AR and RANLIB for the entire step's environment
+          # Keep AR and RANLIB in env for general make commands, but also pass to configure
           AR: /usr/bin/musl-ar
           RANLIB: /usr/bin/musl-ranlib
         run: |
@@ -64,10 +64,9 @@ jobs:
 
           tar -xf gmp-${GMP_VERSION}.tar.xz
           cd gmp-${GMP_VERSION}
-          # AR and RANLIB are now set via env vars for the whole step,
-          # so no need to pass them directly to configure.
+          # Explicitly provide full paths to musl tools to configure script
           ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
-            CC=musl-gcc CXX=musl-g++
+            CC=/usr/bin/musl-gcc CXX=/usr/bin/musl-g++ AR=/usr/bin/musl-ar RANLIB=/usr/bin/musl-ranlib
           make -j$(nproc)
           sudo make install
         shell: bash
