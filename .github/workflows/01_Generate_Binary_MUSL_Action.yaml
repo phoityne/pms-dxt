@@ -49,6 +49,8 @@ jobs:
         shell: bash
 
       - name: Build and install GMP for musl
+        env:
+          AR: musl-ar # Explicitly set AR for this step
         run: |
           GMP_VERSION="6.3.0"
           wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz
