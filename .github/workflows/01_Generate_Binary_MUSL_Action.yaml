@@ -11,15 +11,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Install musl toolchain and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y musl-tools build-essential curl wget gcc make autoconf libtool pkg-config
-        shell: bash
+          sudo apt-get install -y musl musl-tools build-essential wget curl tar xz-utils
 
-      - name: Install ghcup and GHC
+      - name: Setup musl-ar / musl-ranlib shim
+        run: |
+          sudo ln -sf /usr/bin/ar /usr/local/bin/musl-ar
+          sudo ln -sf /usr/bin/ranlib /usr/local/bin/musl-ranlib
+
+      - name: Install GHCup, GHC and Cabal
         run: |
           curl -sSf https://get-ghcup.haskell.org | BOOTSTRAP_HASKELL_NONINTERACTIVE=1 sh
           echo ". ~/.ghcup/env" >> ~/.bashrc
@@ -30,33 +35,49 @@ jobs:
           ghcup set cabal 3.10.1.0
         shell: bash
 
-      - name: Clone PMS Repos
+      - name: Clone PMS Repositories
         run: |
           mkdir -p pms bin
-          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-procspawn pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
+          repos=(
+            pty-mcp-server
+            pms-ui-request
+            pms-ui-response
+            pms-ui-notification
+            pms-infrastructure
+            pms-infra-cmdrun
+            pms-infra-procspawn
+            pms-infra-socket
+            pms-infra-watch
+            pms-infra-serial
+            pms-application-service
+            pms-domain-service
+            pms-domain-model
+          )
           for repo in "${repos[@]}"; do
             git clone https://github.com/phoityne/$repo.git pms/$repo
           done
         shell: bash
 
-      - name: Build and install GMP for musl
+      - name: Build and install GMP statically for musl
         run: |
           GMP_VERSION="6.3.0"
           wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz
           tar -xf gmp-${GMP_VERSION}.tar.xz
           cd gmp-${GMP_VERSION}
-          ./configure --host=x86_64-linux-musl --build=x86_64-linux-gnu --disable-shared --enable-static --prefix=/usr/local/musl \
-            CC=musl-gcc AR=musl-ar RANLIB=musl-ranlib
+          ./configure \
+            --host=x86_64-linux-musl \
+            --build=x86_64-linux-gnu \
+            --disable-shared \
+            --enable-static \
+            --prefix=/usr/local/musl \
+            CC=musl-gcc \
+            AR=musl-ar \
+            RANLIB=musl-ranlib
           make -j$(nproc)
           sudo make install
-          cd ..
         shell: bash
-        env:
-          CC: musl-gcc
-          AR: musl-ar
-          RANLIB: musl-ranlib
 
-      - name: Set static build flags
+      - name: Configure static build flags for pty-mcp-server
         working-directory: pms/pty-mcp-server
         run: |
           echo "package *" > cabal.project.local
@@ -75,7 +96,7 @@ jobs:
           RANLIB: musl-ranlib
           CFLAGS: "-static -fno-PIC -I/usr/local/musl/include"
           LDFLAGS: "-static -Wl,--static -Wl,-no-pie -L/usr/local/musl/lib"
-          PKG_CONFIG_PATH: /usr/lib/musl/pkgconfig:/usr/local/lib/musl/pkgconfig:/usr/local/musl/lib/pkgconfig
+          PKG_CONFIG_PATH: /usr/local/musl/lib/pkgconfig
         run: |
           ~/.ghcup/bin/cabal update
           ~/.ghcup/bin/cabal configure --disable-shared --enable-static --with-gcc=musl-gcc all
@@ -90,7 +111,6 @@ jobs:
             exit 1
           fi
           cp "$BIN_PATH" bin/pty-mcp-server-x86_64-unknown-linux-musl
-        shell: bash
 
       - name: Commit and push built binary
         run: |
@@ -98,6 +118,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add static binary built on Alpine" || echo "No changes to commit"
+          git commit -m "Add static binary built with musl-gcc" || echo "No changes to commit"
           git push origin main
-        shell: bash
