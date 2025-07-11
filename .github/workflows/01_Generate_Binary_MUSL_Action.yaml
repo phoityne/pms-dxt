@@ -41,15 +41,21 @@ jobs:
       - name: Set static build flags
         working-directory: pms/pty-mcp-server
         run: |
+          # Create or overwrite cabal.project.local to enforce static linking.
+          # -optl-static: Pass -static to the linker.
+          # -optl-pthread: Pass -pthread to the linker for thread support.
+          # -optl-Wl,--static: Explicitly tell the linker (via GHC) to link statically.
+          # -no-pie: Disable Position Independent Executables, which are essentially shared objects.
+          # cc-options: -static: Ensure the C compiler also links statically for any C dependencies.
           echo "package *" > cabal.project.local
-          echo "  ghc-options: -optc -fPIC -optl-static -optl-pthread" >> cabal.project.local
+          echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -no-pie" >> cabal.project.local
           echo "  cc-options: -static" >> cabal.project.local
         shell: bash
 
       - name: Build statically
         working-directory: pms/pty-mcp-server
         env:
-          CC: musl-gcc
+          CC: musl-gcc # Use musl-gcc as the C compiler
         shell: bash
         run: |
           ~/.ghcup/bin/cabal update
@@ -57,6 +63,7 @@ jobs:
 
       - name: Copy built binary
         run: |
+          # Find the built executable and copy it to the bin directory.
           BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
           cp "$BIN_PATH" bin/pty-mcp-server-x86_64-unknown-linux-musl
 
@@ -64,7 +71,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull origin main
+          git pull origin main # Pull latest changes before adding/committing
           git add bin/
-          git commit -m "Add static binary for musl (Ubuntu)" || echo "No changes"
+          git commit -m "Add static binary for musl (Ubuntu)" || echo "No changes to commit"
           git push origin main
