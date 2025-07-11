@@ -11,12 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Install musl toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y musl-tools build-essential curl git wget xz-utils
+          sudo apt-get install -y musl musl-dev musl-tools musl-dev gcc curl make autoconf automake libtool pkg-config
 
       - name: Install ghcup and GHC
         run: |
@@ -31,12 +32,10 @@ jobs:
 
       - name: Build and install GMP for musl
         run: |
-          sudo apt-get install -y musl-dev musl-gcc
-          GMP_VERSION="6.3.0"
-          wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz
-          tar -xf gmp-${GMP_VERSION}.tar.xz
-          cd gmp-${GMP_VERSION}
-          ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
+          mkdir gmp && cd gmp
+          wget https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz
+          tar -xf gmp-6.3.0.tar.xz && cd gmp-6.3.0
+          ./configure --prefix=/usr/local/musl --host=x86_64-linux-musl --enable-static --disable-shared \
             CC=musl-gcc CXX=musl-g++ AR=musl-ar RANLIB=musl-ranlib
           make -j$(nproc)
           sudo make install
@@ -45,7 +44,7 @@ jobs:
       - name: Clone PMS Repos
         run: |
           mkdir -p pms bin
-          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
+          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-procspawn pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
           for repo in "${repos[@]}"; do
             git clone https://github.com/phoityne/$repo.git pms/$repo
           done
@@ -54,16 +53,14 @@ jobs:
       - name: Create cabal.project.local for static build
         working-directory: pms/pty-mcp-server
         run: |
-          cat > cabal.project.local <<'EOL'
-package *
-  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC
-  cc-options: -static -fno-PIC
-  extra-lib-dirs: /usr/local/musl/lib
-  extra-include-dirs: /usr/local/musl/include
-EOL
+          echo "package *" > cabal.project.local
+          echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC" >> cabal.project.local
+          echo "  cc-options: -static -fno-PIC" >> cabal.project.local
+          echo "  extra-lib-dirs: /usr/local/musl/lib" >> cabal.project.local
+          echo "  extra-include-dirs: /usr/local/musl/include" >> cabal.project.local
         shell: bash
 
-      - name: Build statically
+      - name: Build pty-mcp-server statically
         working-directory: pms/pty-mcp-server
         env:
           CC: musl-gcc
@@ -75,6 +72,7 @@ EOL
           PKG_CONFIG_PATH: /usr/local/musl/lib/pkgconfig
         run: |
           ~/.ghcup/bin/cabal update
+          ~/.ghcup/bin/cabal configure --disable-shared --enable-static --with-gcc=musl-gcc all
           ~/.ghcup/bin/cabal build all --disable-shared --disable-executable-dynamic
         shell: bash
 
@@ -86,14 +84,12 @@ EOL
             exit 1
           fi
           cp "$BIN_PATH" bin/pty-mcp-server-x86_64-unknown-linux-musl
-        shell: bash
 
-      - name: Commit and push binary
+      - name: Commit and push built binary
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add static binary built with musl-gcc" || echo "No changes to commit"
+          git commit -m "Add static binary built on musl" || echo "No changes to commit"
           git push origin main
-        shell: bash
