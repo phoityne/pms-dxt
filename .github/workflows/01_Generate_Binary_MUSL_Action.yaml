@@ -45,11 +45,12 @@ jobs:
           # -optl-static: Pass -static to the linker.
           # -optl-pthread: Pass -pthread to the linker for thread support.
           # -optl-Wl,--static: Explicitly tell the linker (via GHC) to link statically.
-          # -no-pie: Disable Position Independent Executables, which are essentially shared objects.
-          # cc-options: -static: Ensure the C compiler also links statically for any C dependencies.
+          # -optl-Wl,-no-pie: More explicitly disable Position Independent Executables at the linker level.
+          # -fno-PIC: Crucially, disable Position Independent Code generation for Haskell modules and internal C code.
+          # cc-options: -static -fno-PIC: Ensure the C compiler also links statically and avoids PIC.
           echo "package *" > cabal.project.local
-          echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -no-pie" >> cabal.project.local
-          echo "  cc-options: -static" >> cabal.project.local
+          echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC" >> cabal.project.local
+          echo "  cc-options: -static -fno-PIC" >> cabal.project.local
         shell: bash
 
       - name: Build statically
