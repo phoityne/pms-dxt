@@ -55,7 +55,10 @@ jobs:
           RANLIB: musl-ranlib
           CFLAGS: "-static -fno-PIC"
           LDFLAGS: "-static -Wl,--static -Wl,-no-pie"
+          PKG_CONFIG_PATH: /usr/lib/musl/pkgconfig:/usr/local/lib/musl/pkgconfig # Ensure pkg-config uses musl paths
         shell: bash
         run: |
           ~/.ghcup/bin/cabal update
+          # Explicitly configure all packages with musl-gcc and disable shared libraries
+          ~/.ghcup/bin/cabal configure --disable-shared --with-gcc=musl-gcc all
           ~/.ghcup/bin/cabal build all --disable-shared --disable-executable-dynamic
