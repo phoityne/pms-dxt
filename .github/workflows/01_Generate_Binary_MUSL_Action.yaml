@@ -49,11 +49,17 @@ jobs:
         shell: bash
 
       - name: Build and install GMP for musl
-        env:
-          AR: musl-ar # Explicitly set AR for this step
         run: |
+          # Add musl-tools directory to PATH to ensure musl-ar is found by libtool
+          export PATH="/usr/bin:${PATH}" # musl-ar is typically in /usr/bin after musl-tools install
+
           GMP_VERSION="6.3.0"
-          wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz
+          for i in $(seq 1 5); do
+            wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && break
+            echo "Download failed, retrying in 10 seconds... (Attempt $i/5)"
+            sleep 10
+          done || { echo "Failed to download GMP after multiple retries."; exit 1; }
+
           tar -xf gmp-${GMP_VERSION}.tar.xz
           cd gmp-${GMP_VERSION}
           ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
