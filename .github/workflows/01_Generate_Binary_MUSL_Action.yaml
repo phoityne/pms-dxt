@@ -17,6 +17,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y musl-tools
+        shell: bash
 
       - name: Install ghcup and GHC
         run: |
@@ -50,6 +51,9 @@ jobs:
 
       - name: Build and install GMP for musl
         run: |
+          # Ensure /usr/bin is in PATH for 'libtool' to find musl-ar and musl-ranlib
+          export PATH="/usr/bin:$PATH"
+
           GMP_VERSION="6.3.0"
           for i in $(seq 1 5); do
             wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && break
@@ -59,9 +63,9 @@ jobs:
 
           tar -xf gmp-${GMP_VERSION}.tar.xz
           cd gmp-${GMP_VERSION}
-          # Explicitly provide full paths to musl tools to bypass PATH issues
+          # Rely on PATH for musl tools, as libtool expects it
           ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
-            CC=/usr/bin/musl-gcc CXX=/usr/bin/musl-g++ AR=/usr/bin/musl-ar RANLIB=/usr/bin/musl-ranlib
+            CC=musl-gcc CXX=musl-g++ AR=musl-ar RANLIB=musl-ranlib
           make -j$(nproc)
           sudo make install
         shell: bash
