@@ -41,13 +41,6 @@ jobs:
       - name: Set static build flags
         working-directory: pms/pty-mcp-server
         run: |
-          # Create or overwrite cabal.project.local to enforce static linking.
-          # -optl-static: Pass -static to the linker.
-          # -optl-pthread: Pass -pthread to the linker for thread support.
-          # -optl-Wl,--static: Explicitly tell the linker (via GHC) to link statically.
-          # -optl-Wl,-no-pie: More explicitly disable Position Independent Executables at the linker level.
-          # -fno-PIC: Crucially, disable Position Independent Code generation for Haskell modules and internal C code.
-          # cc-options: -static -fno-PIC: Ensure the C compiler also links statically and avoids PIC.
           echo "package *" > cabal.project.local
           echo "  ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC" >> cabal.project.local
           echo "  cc-options: -static -fno-PIC" >> cabal.project.local
@@ -56,23 +49,11 @@ jobs:
       - name: Build statically
         working-directory: pms/pty-mcp-server
         env:
-          CC: musl-gcc # Use musl-gcc as the C compiler
+          CC: musl-gcc
+          LD: musl-gcc
+          CFLAGS: "-static -fno-PIC"
+          LDFLAGS: "-static -Wl,--static -Wl,-no-pie"
         shell: bash
         run: |
           ~/.ghcup/bin/cabal update
-          ~/.ghcup/bin/cabal build all
-
-      - name: Copy built binary
-        run: |
-          # Find the built executable and copy it to the bin directory.
-          BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
-          cp "$BIN_PATH" bin/pty-mcp-server-x86_64-unknown-linux-musl
-
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull origin main # Pull latest changes before adding/committing
-          git add bin/
-          git commit -m "Add static binary for musl (Ubuntu)" || echo "No changes to commit"
-          git push origin main
+          ~/.ghcup/bin/cabal build all --disable-shared
