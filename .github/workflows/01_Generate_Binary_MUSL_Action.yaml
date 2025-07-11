@@ -13,10 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install musl toolchain and basic deps
+      - name: Install musl toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y musl-tools musl-dev build-essential curl wget xz-utils
+          sudo apt-get install -y musl-tools build-essential curl git wget xz-utils
 
       - name: Install ghcup and GHC
         run: |
@@ -29,21 +29,15 @@ jobs:
           ghcup set cabal 3.10.1.0
         shell: bash
 
-      - name: Build and install GMP statically
+      - name: Build and install GMP for musl
         run: |
+          sudo apt-get install -y musl-dev musl-gcc
           GMP_VERSION="6.3.0"
           wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz
           tar -xf gmp-${GMP_VERSION}.tar.xz
           cd gmp-${GMP_VERSION}
-          ./configure \
-            --host=x86_64-linux-musl \
-            --build=x86_64-linux-musl \
-            --disable-shared \
-            --enable-static \
-            --prefix=/usr/local/musl \
-            CC=/usr/bin/musl-gcc \
-            AR=/usr/bin/musl-ar \
-            RANLIB=/usr/bin/musl-ranlib
+          ./configure --host=x86_64-linux-musl --build=x86_64-linux-musl --disable-shared --enable-static --prefix=/usr/local/musl \
+            CC=musl-gcc CXX=musl-g++ AR=musl-ar RANLIB=musl-ranlib
           make -j$(nproc)
           sudo make install
         shell: bash
@@ -51,21 +45,7 @@ jobs:
       - name: Clone PMS Repos
         run: |
           mkdir -p pms bin
-          repos=(
-            pty-mcp-server
-            pms-ui-request
-            pms-ui-response
-            pms-ui-notification
-            pms-infrastructure
-            pms-infra-cmdrun
-            pms-infra-procspawn
-            pms-infra-socket
-            pms-infra-watch
-            pms-infra-serial
-            pms-application-service
-            pms-domain-service
-            pms-domain-model
-          )
+          repos=(pty-mcp-server pms-ui-request pms-ui-response pms-ui-notification pms-infrastructure pms-infra-cmdrun pms-infra-socket pms-infra-watch pms-infra-serial pms-application-service pms-domain-service pms-domain-model)
           for repo in "${repos[@]}"; do
             git clone https://github.com/phoityne/$repo.git pms/$repo
           done
@@ -74,50 +54,46 @@ jobs:
       - name: Create cabal.project.local for static build
         working-directory: pms/pty-mcp-server
         run: |
-          cat <<EOF > cabal.project.local
+          cat > cabal.project.local <<'EOL'
 package *
   ghc-options: -optl-static -optl-pthread -optl-Wl,--static -optl-Wl,-no-pie -fno-PIC
   cc-options: -static -fno-PIC
   extra-lib-dirs: /usr/local/musl/lib
   extra-include-dirs: /usr/local/musl/include
-EOF
+EOL
+        shell: bash
 
-      - name: Build pty-mcp-server statically
+      - name: Build statically
         working-directory: pms/pty-mcp-server
         env:
-          LIBRARY_PATH: /usr/local/musl/lib
-          CC: /usr/bin/musl-gcc
-          LD: /usr/bin/musl-gcc
-          AR: /usr/bin/musl-ar
-          RANLIB: /usr/bin/musl-ranlib
+          CC: musl-gcc
+          LD: musl-gcc
+          AR: musl-ar
+          RANLIB: musl-ranlib
           CFLAGS: "-static -fno-PIC -I/usr/local/musl/include"
           LDFLAGS: "-static -Wl,--static -Wl,-no-pie -L/usr/local/musl/lib"
           PKG_CONFIG_PATH: /usr/local/musl/lib/pkgconfig
         run: |
           ~/.ghcup/bin/cabal update
-          ~/.ghcup/bin/cabal configure \
-            --disable-shared \
-            --enable-static \
-            --with-gcc=/usr/bin/musl-gcc \
-            --extra-lib-dirs=/usr/local/musl/lib \
-            --extra-include-dirs=/usr/local/musl/include \
-            all
           ~/.ghcup/bin/cabal build all --disable-shared --disable-executable-dynamic
+        shell: bash
 
-      - name: Copy built binary
+      - name: Copy built binary to bin/
         run: |
           BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
           if [ -z "$BIN_PATH" ]; then
             echo "Binary not found!"
             exit 1
           fi
-          cp "$BIN_PATH" bin/pty-mcp-server-x86_64-musl
+          cp "$BIN_PATH" bin/pty-mcp-server-x86_64-unknown-linux-musl
+        shell: bash
 
-      - name: Commit and push static binary
+      - name: Commit and push binary
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add static binary built with musl" || echo "No changes to commit"
+          git commit -m "Add static binary built with musl-gcc" || echo "No changes to commit"
           git push origin main
+        shell: bash
