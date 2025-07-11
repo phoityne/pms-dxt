@@ -50,12 +50,14 @@ jobs:
 
       - name: Build and install GMP for musl
         run: |
-          # Find the absolute paths for musl-ar and musl-ranlib
+          # Ensure /usr/bin is in PATH for 'which' to find musl-ar and musl-ranlib
+          export PATH="/usr/bin:$PATH"
+
           MUSL_AR=$(which musl-ar)
           MUSL_RANLIB=$(which musl-ranlib)
 
           if [ -z "$MUSL_AR" ] || [ -z "$MUSL_RANLIB" ]; then
-            echo "Error: musl-ar or musl-ranlib not found. Please ensure musl-tools is correctly installed and in PATH."
+            echo "Error: musl-ar or musl-ranlib not found after setting PATH. Please investigate musl-tools installation."
             exit 1
           fi
 
