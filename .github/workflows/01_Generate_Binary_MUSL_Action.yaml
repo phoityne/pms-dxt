@@ -51,9 +51,11 @@ jobs:
         env:
           CC: musl-gcc
           LD: musl-gcc
+          AR: musl-ar
+          RANLIB: musl-ranlib
           CFLAGS: "-static -fno-PIC"
           LDFLAGS: "-static -Wl,--static -Wl,-no-pie"
         shell: bash
         run: |
           ~/.ghcup/bin/cabal update
-          ~/.ghcup/bin/cabal build all --disable-shared
+          ~/.ghcup/bin/cabal build all --disable-shared --disable-executable-dynamic
