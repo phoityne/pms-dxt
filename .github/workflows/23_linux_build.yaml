@@ -1,0 +1,78 @@
+name: 03_Linux Static Build (Stack Musl)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout trigger repo
+        uses: actions/checkout@v4
+
+      - name: Clone dependent repositories
+        shell: bash
+        run: |
+          mkdir -p pms
+          repos=("pty-mcp-server" \
+                  "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
+                  "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
+                  "pms-application-service" "pms-domain-service" "pms-domain-model")
+          for repo in "${repos[@]}"; do
+            echo "Cloning $repo..."
+            git clone https://github.com/phoityne/$repo.git pms/$repo
+          done
+
+      - name: Set up Haskell with GHC 9.6 and Stack
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.7'
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Configure stack.yaml for GHC 9.6, ghc-musl, and local packages
+        working-directory: pms/pty-mcp-server
+        run: |
+          echo "resolver: lts-22.12" > stack.yaml
+          echo "system-ghc: false" >> stack.yaml
+          echo "packages:" >> stack.yaml
+          echo "- ." >> stack.yaml
+          for dir in ../pms-ui-request ../pms-ui-response ../pms-ui-notification \
+                     ../pms-infrastructure ../pms-infra-cmdrun ../pms-infra-procspawn ../pms-infra-socket ../pms-infra-watch ../pms-infra-serial \
+                     ../pms-application-service ../pms-domain-service ../pms-domain-model; do
+            echo "- $dir" >> stack.yaml
+          done
+
+      - name: Build static binary
+        working-directory: pms/pty-mcp-server
+        run: |
+          stack build --copy-bins --local-bin-path .
+
+      - name: Copy binary to bin/
+        shell: bash
+        run: |
+          mkdir -p bin
+          BIN_PATH=$(find pms/pty-mcp-server -maxdepth 1 -type f -name pty-mcp-server | head -n1)
+          if [ -z "$BIN_PATH" ]; then
+            echo "Binary not found"
+            exit 1
+          fi
+          cp "$BIN_PATH" bin/pty-mcp-server-linux-static
+
+      - name: Compress binary using xz
+        run: |
+          xz -9 -T0 -k bin/pty-mcp-server-linux-static
+
+      - name: Commit and push binary
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull origin main
+          git add bin/pty-mcp-server-linux-static.xz
+          git commit -m "Add static binary for linux(.xz)" || echo "No changes to commit"
+          git push origin main
