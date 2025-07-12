@@ -30,7 +30,7 @@ jobs:
       - name: Install build essentials
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libtinfo-dev zlib1g-dev
+          sudo apt-get install -y build-essential libtinfo-dev zlib1g-dev musl-tools
 
       - name: Set up Haskell with GHC 9.6 and Stack
         uses: haskell-actions/setup@v2
@@ -39,21 +39,33 @@ jobs:
           enable-stack: true
           stack-version: 'latest'
 
-      - name: Configure stack.yaml for GHC 9.6, ghc-musl, and local packages
+      - name: Configure stack.yaml for static build
         working-directory: pms/pty-mcp-server
         run: |
-          echo "resolver: lts-22.12" > stack.yaml
-          echo "system-ghc: false" >> stack.yaml
-          echo "packages:" >> stack.yaml
-          echo "- ." >> stack.yaml
-          for dir in ../pms-ui-request ../pms-ui-response ../pms-ui-notification \
-                    ../pms-infrastructure ../pms-infra-cmdrun ../pms-infra-procspawn ../pms-infra-socket ../pms-infra-watch ../pms-infra-serial \
-                    ../pms-application-service ../pms-domain-service ../pms-domain-model; do
-            echo "- $dir" >> stack.yaml
-          done
-          echo "extra-deps:" >> stack.yaml
-          echo "- serialport-0.5.6@sha256:c1039b56ff705784ae5ed46c8cd646e6a5850fba7328c6b78024da0a35f55ca8,1702" >> stack.yaml
-          echo "- strip-ansi-escape-0.1.0.0@sha256:08f2ed93b16086a837ec46eab7ce8d27cf39d47783caaeb818878ea33c2ff75f,1628" >> stack.yaml
+          cat <<EOF > stack.yaml
+          resolver: lts-22.12
+          system-ghc: false
+          packages:
+            - .
+            - ../pms-ui-request
+            - ../pms-ui-response
+            - ../pms-ui-notification
+            - ../pms-infrastructure
+            - ../pms-infra-cmdrun
+            - ../pms-infra-procspawn
+            - ../pms-infra-socket
+            - ../pms-infra-watch
+            - ../pms-infra-serial
+            - ../pms-application-service
+            - ../pms-domain-service
+            - ../pms-domain-model
+          extra-deps:
+            - serialport-0.5.6@sha256:c1039b56ff705784ae5ed46c8cd646e6a5850fba7328c6b78024da0a35f55ca8,1702
+            - strip-ansi-escape-0.1.0.0@sha256:08f2ed93b16086a837ec46eab7ce8d27cf39d47783caaeb818878ea33c2ff75f,1628
+            - hie-bios-0.16.0@sha256:46461e9c6dfc4308b0b7c9fcfa45b9e3b860c40809ee1c7bb1f49ac3be57de55,3112
+          ghc-options:
+            "*": -optl-static -optl-pthread
+          EOF
 
       - name: Build static binary
         working-directory: pms/pty-mcp-server
@@ -64,7 +76,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p bin
-          BIN_PATH=$(find pms/pty-mcp-server -maxdepth 1 -type f -name pty-mcp-server | head -n1)
+          BIN_PATH=$(find pms/pty-mcp-server -maxdepth 1 -type f -executable -name pty-mcp-server | head -n1)
           if [ -z "$BIN_PATH" ]; then
             echo "Binary not found"
             exit 1
@@ -82,5 +94,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/pty-mcp-server-linux-static.xz
-          git commit -m "Add static binary for linux(.xz)" || echo "No changes to commit"
+          git commit -m "Add static binary for linux (.xz)" || echo "No changes to commit"
           git push origin main
