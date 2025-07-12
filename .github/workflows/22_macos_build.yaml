@@ -65,7 +65,7 @@ jobs:
 
       - name: Compress binary using xz
         run: |
-          xz -9 -T0 -k bin/pty-mcp-server-macos-aarch64  # -k: keep original if needed
+          xz -9 -T0 -k bin/pty-mcp-server-macos-aarch64
 
       - name: Commit and push compressed binary
         shell: bash

@@ -59,8 +59,12 @@ jobs:
             echo "Binary not found"
             exit 1
           fi
-          # cp "$BIN_PATH" bin/pty-mcp-server.exe
+          cp "$BIN_PATH" bin/pty-mcp-server.exe
           cp "$BIN_PATH" bin/pty-mcp-server-windows-no-mingw.exe
+
+      - name: Compress binary using xz
+        run: |
+          xz -9 -T0 -k bin/pty-mcp-server-windows-no-mingw.exe
 
       - name: Commit and push binary
         shell: bash
@@ -68,6 +72,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
-          git add bin/
-          git commit -m "Add static binary for windows" || echo "No changes to commit"
+          git add bin/pty-mcp-server.exe
+          git add bin/pty-mcp-server-windows-no-mingw.exe.xz
+          git commit -m "Add static binary for windows" (.xz) || echo "No changes to commit"
           git push origin main
