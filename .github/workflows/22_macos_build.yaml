@@ -1,6 +1,5 @@
 name: 02_macOS Manual Build (Apple Silicon)
 
-
 on:
   workflow_dispatch:
 
@@ -42,13 +41,15 @@ jobs:
       - name: Update package index
         run: cabal update
 
-      - name: Configure pty-mcp-server (static build not supported on macOS, so fallback)
+      - name: Configure pty-mcp-server
         working-directory: pms/pty-mcp-server
-        run: cabal configure
+        run: |
+          cabal configure
 
-      - name: Build pty-mcp-server
+      - name: Build pty-mcp-server with optimizations
         working-directory: pms/pty-mcp-server
-        run: cabal build exe:pty-mcp-server
+        run: |
+          cabal build exe:pty-mcp-server --ghc-options="-O2 -split-sections -optl-s -optl-Wl,--gc-sections"
 
       - name: Copy binary to bin/
         shell: bash
@@ -61,6 +62,10 @@ jobs:
           fi
           cp "$BIN_PATH" bin/pty-mcp-server-macos-aarch64
 
+      - name: Strip binary to reduce size
+        run: |
+          strip bin/pty-mcp-server-macos-aarch64
+
       - name: Commit and push binary
         shell: bash
         run: |
@@ -68,5 +73,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add binary for macos aarch64" || echo "No changes to commit"
+          git commit -m "Add optimized binary for macos aarch64" || echo "No changes to commit"
           git push origin main
