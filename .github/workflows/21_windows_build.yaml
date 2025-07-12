@@ -25,6 +25,7 @@ jobs:
           done
 
       - name: Create cabal.project file
+        working-directory: pms/pty-mcp-server
         run: |
           echo "packages: pms/*" > cabal.project
 
@@ -55,7 +56,7 @@ jobs:
             echo "Binary not found"
             exit 1
           fi
-          cp "$BIN_PATH" bin/pty-mcp-server-${{ matrix.target }}.exe
+          cp "$BIN_PATH" bin/pty-mcp-server-windows.exe
 
       - name: Commit and push binary
         shell: bash
@@ -64,5 +65,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
           git add bin/
-          git commit -m "Add static binary for ${{ matrix.target }}" || echo "No changes to commit"
+          git commit -m "Add static binary for windows" || echo "No changes to commit"
           git push origin main
