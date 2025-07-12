@@ -29,7 +29,8 @@ jobs:
 
       - name: Create cabal.project file
         working-directory: pms/pty-mcp-server
-        run: echo "packages: ../*" > cabal.project
+        run: |
+          echo "packages: ../*" > cabal.project
 
       - name: Set up GHC and Cabal
         uses: haskell-actions/setup@v2
