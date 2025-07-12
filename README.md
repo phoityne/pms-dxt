@@ -1,9 +1,9 @@
 # pms-dxt
 
-`pms-dxt` is a utility project for creating `.dxt` packages. It is used to build and distribute `.dxt` packages for the [`pty-mcp-server`](https://github.com/phoityne/pty-mcp-server). The generated packages can be downloaded from the [`download`](https://github.com/phoityne/pty-mcp-server) folder.
+`pms-dxt` is a utility project for creating `.dxt` packages. It is used to build and distribute `.dxt` packages for the [`pty-mcp-server`](https://github.com/phoityne/pty-mcp-server). The generated packages can be downloaded from the [`download`](https://github.com/phoityne/pms-dxt/tree/main/download) folder.
 
 The `.dxt` format is a standardized archive format that bundles an MCP server and its related tools in a structure that AI applications can correctly recognize and utilize. It serves as an official packaging and deployment method — and is the **official deployment format for Claude Code**.
-For details on the `.dxt` archive structure and available reference tooling, see: [**dxt on GitHub**](https://github.com/phoityne/pms-dxt/tree/main/download)
+For details on the `.dxt` archive structure and available reference tooling, see: [**dxt on GitHub**](https://github.com/anthropics/dxt)
 
 ---
 
