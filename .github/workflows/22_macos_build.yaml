@@ -1,0 +1,71 @@
+name: macOS Manual Build (Apple Silicon)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout trigger repo
+        uses: actions/checkout@v4
+
+      - name: Clone dependent repositories
+        shell: bash
+        run: |
+          mkdir -p pms
+          repos=("pty-mcp-server" \
+                 "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
+                 "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
+                 "pms-application-service" "pms-domain-service" "pms-domain-model")
+          for repo in "${repos[@]}"; do
+            echo "Cloning $repo..."
+            git clone https://github.com/phoityne/$repo.git pms/$repo
+          done
+
+      - name: Create cabal.project file
+        working-directory: pms/pty-mcp-server
+        run: |
+          echo "packages: ../*" > cabal.project
+
+      - name: Set up GHC and Cabal
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.3'
+          cabal-version: '3.10.1.0'
+
+      - name: Update package index
+        run: cabal update
+
+      - name: Configure pty-mcp-server (static build not supported on macOS, so fallback)
+        working-directory: pms/pty-mcp-server
+        run: cabal configure
+
+      - name: Build pty-mcp-server
+        working-directory: pms/pty-mcp-server
+        run: cabal build exe:pty-mcp-server
+
+      - name: Copy binary to bin/
+        shell: bash
+        run: |
+          mkdir -p bin
+          BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
+          if [ -z "$BIN_PATH" ]; then
+            echo "Binary not found"
+            exit 1
+          fi
+          cp "$BIN_PATH" bin/pty-mcp-server-macos-aarch64
+
+      - name: Commit and push binary
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull origin main
+          git add bin/
+          git commit -m "Add binary for macos aarch64" || echo "No changes to commit"
+          git push origin main
