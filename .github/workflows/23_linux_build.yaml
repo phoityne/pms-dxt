@@ -27,6 +27,11 @@ jobs:
             git clone https://github.com/phoityne/$repo.git pms/$repo
           done
 
+      - name: Install build essentials
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libtinfo-dev zlib1g-dev
+
       - name: Set up Haskell with GHC 9.6 and Stack
         uses: haskell-actions/setup@v2
         with:
@@ -42,7 +47,7 @@ jobs:
           echo "packages:" >> stack.yaml
           echo "- ." >> stack.yaml
           for dir in ../pms-ui-request ../pms-ui-response ../pms-ui-notification \
-                    ../pms-infra-cmdrun ../pms-infra-procspawn ../pms-infra-socket ../pms-infra-watch ../pms-infra-serial \
+                    ../pms-infrastructure ../pms-infra-cmdrun ../pms-infra-procspawn ../pms-infra-socket ../pms-infra-watch ../pms-infra-serial \
                     ../pms-application-service ../pms-domain-service ../pms-domain-model; do
             echo "- $dir" >> stack.yaml
           done
