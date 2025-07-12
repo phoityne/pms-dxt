@@ -1,11 +1,9 @@
 # pms-dxt
 
-`pms-dxt` is a utility project for building `.dxt` packages — a standardized archive format used for distributing MCP servers and their tools in a form compatible with Claude Code AI applications.
+`pms-dxt` is a utility project for creating `.dxt` packages. It is used to build and distribute `.dxt` packages for the [`pty-mcp-server`](https://github.com/phoityne/pty-mcp-server). The generated packages can be downloaded from the [`download`](https://github.com/phoityne/pty-mcp-server) folder.
 
-The `.dxt` format is one of the official distribution methods for the [`pty-mcp-server`](https://github.com/phoityne/pty-mcp-server), a modular and extensible MCP server implementation.  
-Using `pms-dxt`, developers can bundle the server binary, configuration files, and extension scripts into a single deployable `.dxt` archive for desktop AI environments.
-
-For details on the `.dxt` archive structure and reference tooling, see: [dxt on GitHub](https://github.com/anthropics/dxt).
+The `.dxt` format is a standardized archive format that bundles an MCP server and its related tools in a structure that AI applications can correctly recognize and utilize. It serves as an official packaging and deployment method — and is the **official deployment format for Claude Code**.
+For details on the `.dxt` archive structure and available reference tooling, see: [**dxt on GitHub**](https://github.com/phoityne/pms-dxt/tree/main/download)
 
 ---
 
@@ -31,13 +29,21 @@ This allows you to use the included command-line tools directly, outside of Clau
 
 > ⚠ **Note**  
 > The included executable files are currently built **only for Windows**.  
-> They will not run on macOS or Linux.  
+> They will not run on Linux.  
 > Support for additional platforms may be added in the future.
 >
 > If you see a DLL error when running a tool, you may need to install the  
 > **Microsoft Visual C++ Redistributable** from:  
 > [https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) 
 >  
+
+## Automated Binary Builds via GitHub Actions (Trial)
+
+`pms-dxt` uses GitHub Actions to automatically build executable binaries of `pty-mcp-server` for various operating systems and CPU architectures.  
+These builds ensure that `.dxt` packages are available for multiple platforms, making deployment seamless across environments.
+
+This setup is still in trial phase and may be subject to changes or limitations.  
+For more details, refer to the [GitHub Actions workflows](https://github.com/phoityne/pms-dxt/actions).
 
 ----
 
