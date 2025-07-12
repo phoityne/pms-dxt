@@ -3,6 +3,9 @@ name: Windows Manual Build (No MinGW)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -56,7 +59,8 @@ jobs:
             echo "Binary not found"
             exit 1
           fi
-          cp "$BIN_PATH" bin/pty-mcp-server-windows.exe
+          # cp "$BIN_PATH" bin/pty-mcp-server.exe
+          cp "$BIN_PATH" bin/pty-mcp-server-windows-no-mingw.exe
 
       - name: Commit and push binary
         shell: bash
