@@ -27,6 +27,9 @@ To extract it manually:
 
 This allows you to use the included command-line tools directly, outside of Claude Code.
 
+An example usage scenario in **LM Studio** is illustrated below:  
+![lmstudio](https://raw.githubusercontent.com/phoityne/pmc-dxt/main/images/sample_lmstudio.png)
+
 > ⚠ **Note**  
 > The included executable files are currently built **only for Windows**.  
 > They will not run on Linux.  
