@@ -49,7 +49,7 @@ jobs:
       - name: Build pty-mcp-server with optimizations
         working-directory: pms/pty-mcp-server
         run: |
-          cabal build exe:pty-mcp-server --ghc-options="-O2 -split-sections -optl-s -optl-Wl,--gc-sections"
+          cabal build exe:pty-mcp-server --ghc-options="-O2 -split-sections"
 
       - name: Copy binary to bin/
         shell: bash
