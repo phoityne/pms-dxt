@@ -1,4 +1,4 @@
-name: Linux Build
+name: Build Linux
 
 on:
   workflow_call:
@@ -8,7 +8,11 @@ on:
         type: string
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Building for Linux target ${{ inputs.target }}"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Echo target
+        run: echo "Building for Linux target: ${{ inputs.target }}"

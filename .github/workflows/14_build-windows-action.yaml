@@ -1,4 +1,4 @@
-name: Windows Build
+name: Build Windows
 
 on:
   workflow_call:
@@ -8,7 +8,8 @@ on:
         type: string
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
     steps:
-      - run: echo "Building for Windows target ${{ inputs.target }}"
+      - uses: actions/checkout@v4
+      - run: echo "Building for Windows target: ${{ inputs.target }}"

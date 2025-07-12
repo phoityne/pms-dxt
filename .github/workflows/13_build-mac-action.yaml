@@ -1,4 +1,4 @@
-name: macOS Build
+name: Build macOS
 
 on:
   workflow_call:
@@ -8,7 +8,8 @@ on:
         type: string
 
 jobs:
-  build:
+  build-macos:
     runs-on: macos-latest
     steps:
-      - run: echo "Building for macOS target ${{ inputs.target }}"
+      - uses: actions/checkout@v4
+      - run: echo "Building for macOS target: ${{ inputs.target }}"
