@@ -42,10 +42,13 @@ jobs:
           echo "packages:" >> stack.yaml
           echo "- ." >> stack.yaml
           for dir in ../pms-ui-request ../pms-ui-response ../pms-ui-notification \
-                     ../pms-infrastructure ../pms-infra-cmdrun ../pms-infra-procspawn ../pms-infra-socket ../pms-infra-watch ../pms-infra-serial \
-                     ../pms-application-service ../pms-domain-service ../pms-domain-model; do
+                    ../pms-infra-cmdrun ../pms-infra-procspawn ../pms-infra-socket ../pms-infra-watch ../pms-infra-serial \
+                    ../pms-application-service ../pms-domain-service ../pms-domain-model; do
             echo "- $dir" >> stack.yaml
           done
+          echo "extra-deps:" >> stack.yaml
+          echo "- serialport-0.5.6@sha256:c1039b56ff705784ae5ed46c8cd646e6a5850fba7328c6b78024da0a35f55ca8,1702" >> stack.yaml
+          echo "- strip-ansi-escape-0.1.0.0@sha256:08f2ed93b16086a837ec46eab7ce8d27cf39d47783caaeb818878ea33c2ff75f,1628" >> stack.yaml
 
       - name: Build static binary
         working-directory: pms/pty-mcp-server
