@@ -1,0 +1,14 @@
+name: Linux Build
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Building for Linux target ${{ inputs.target }}"

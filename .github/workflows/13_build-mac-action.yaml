@@ -1,0 +1,14 @@
+name: macOS Build
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - run: echo "Building for macOS target ${{ inputs.target }}"

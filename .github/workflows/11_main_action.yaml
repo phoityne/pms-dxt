@@ -1,0 +1,36 @@
+name: Matrix Dispatcher
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            workflow: 12_build-linux-action.yaml
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            workflow: 13_build-mac-action.yaml
+          - os: windows-latest
+            target: x86_64-w64-mingw32
+            workflow: 14_build-windows-action.yaml
+
+    steps:
+      - name: Call external workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "${{ matrix.workflow }}",
+              ref: "main",
+              inputs: {
+                target: "${{ matrix.target }}"
+              }
+            });

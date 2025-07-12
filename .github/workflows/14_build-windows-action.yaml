@@ -1,0 +1,14 @@
+name: Windows Build
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - run: echo "Building for Windows target ${{ inputs.target }}"
