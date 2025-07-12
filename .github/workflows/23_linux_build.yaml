@@ -62,7 +62,7 @@ jobs:
           extra-deps:
             - serialport-0.5.6@sha256:c1039b56ff705784ae5ed46c8cd646e6a5850fba7328c6b78024da0a35f55ca8,1702
             - strip-ansi-escape-0.1.0.0@sha256:08f2ed93b16086a837ec46eab7ce8d27cf39d47783caaeb818878ea33c2ff75f,1628
-            - hie-bios-0.16.0@sha256:46461e9c6dfc4308b0b7c9fcfa45b9e3b860c40809ee1c7bb1f49ac3be57de55,3112
+            - hie-bios-0.16.0@sha256:ab659b627b4351ee78a60305c5bfe2b7d53078506415ec9f92da8f593614c4fb,13724
           ghc-options:
             "*": -optl-static -optl-pthread
           EOF
