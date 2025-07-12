@@ -25,7 +25,9 @@ jobs:
           done
 
       - name: Create cabal.project file
-        run: echo "packages: pms/*" > cabal.project
+        run: |
+          echo "packages: pms/*" > cabal.project
+
 
       - name: Set up GHC and Cabal
         uses: haskell-actions/setup@v2
