@@ -33,7 +33,7 @@ jobs:
         uses: haskell-actions/setup@v2
         with:
           ghc-version: 9.6.7
-          cabal-version: 3.12.1.0
+          cabal-version: 3.10.3.0
 
       - name: Install system dependencies (Linux only)
         if: matrix.os == 'ubuntu-latest'
@@ -41,9 +41,15 @@ jobs:
           sudo apt-get update || true
           sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu
 
-      - name: Prepare build directories
+      - name: Prepare build directories (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: mkdir -p pms bin
+
+      - name: Prepare build directories (Windows)
+        if: runner.os == 'Windows'
         run: |
-          mkdir -p pms bin
+          New-Item -ItemType Directory -Force -Path pms
+          New-Item -ItemType Directory -Force -Path bin
 
       - name: Clone repositories
         run: |
