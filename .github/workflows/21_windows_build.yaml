@@ -3,7 +3,6 @@ name: Windows Manual Build (No MinGW)
 on:
   workflow_dispatch:
 
-
 jobs:
   build:
     runs-on: windows-latest
@@ -18,15 +17,18 @@ jobs:
           mkdir -p pms
           repos=("pty-mcp-server" \
                  "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
-                 "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
+                 "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
                  "pms-application-service" "pms-domain-service" "pms-domain-model")
           for repo in "${repos[@]}"; do
             echo "Cloning $repo..."
             git clone https://github.com/phoityne/$repo.git pms/$repo
           done
 
+      - name: Create cabal.project file
+        run: echo "packages: pms/*" > cabal.project
+
       - name: Set up GHC and Cabal
-        uses: haskell/actions/setup@v2
+        uses: haskell-actions/setup@v2
         with:
           ghc-version: '9.6.3'
           cabal-version: '3.10.1.0'
