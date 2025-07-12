@@ -66,12 +66,13 @@ jobs:
         run: |
           strip bin/pty-mcp-server-macos-aarch64
 
-      - name: Commit and push binary
-        shell: bash
+      - name: Strip binary to reduce size
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull origin main
-          git add bin/
-          git commit -m "Add optimized binary for macos aarch64" || echo "No changes to commit"
-          git push origin main
+          strip bin/pty-mcp-server-macos-aarch64
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pty-mcp-server-macos-aarch64
+          path: bin/pty-mcp-server-macos-aarch64
+          
