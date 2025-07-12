@@ -1,4 +1,4 @@
-name: Windows Manual Build (No MinGW)
+name: 01_Windows Manual Build (No MinGW)
 
 on:
   workflow_dispatch:
