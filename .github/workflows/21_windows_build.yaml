@@ -64,7 +64,7 @@ jobs:
 
       - name: Compress binary using xz
         run: |
-          xz -9 -T0 -k bin/pty-mcp-server-windows-no-mingw.exe
+          xz -9 -T0 -k -f bin/pty-mcp-server-windows-no-mingw.exe
 
       - name: Commit and push binary
         shell: bash
