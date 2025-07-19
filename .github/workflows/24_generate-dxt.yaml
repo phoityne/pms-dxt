@@ -1,4 +1,4 @@
-name: Generate DXT Action
+name: 04_Generate DXT Action
 
 on:
   workflow_dispatch:
