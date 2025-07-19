@@ -2,7 +2,7 @@
   "dxt_version": "0.2.0",
   "name": "pms-dxt",
   "display_name": "pty-mcp-server",
-  "version": "0.0.1",
+  "version": "0.0.7",
   "description": "pty-mcp-server is a Haskell implementation of an MCP (Model Context Protocol) server that enables AI agents to dynamically acquire and control PTY (pseudo-terminal) sessions, allowing interaction with real system environments through terminal-based interfaces.",
   "author": {
     "name": "phoityne.hs@gmail.com",
@@ -27,10 +27,6 @@
     }
   },
   "tools": [
-    {
-      "name": "pms_hello",
-      "description": "hello world from pty-mcp-server."
-    }
   ],
   "tools_generated": true,
   "prompts": [

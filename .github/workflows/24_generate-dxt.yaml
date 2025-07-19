@@ -1,0 +1,36 @@
+name: Generate DXT Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dxt CLI
+        run: npm install -g @anthropic-ai/dxt
+
+      - name: Run create_package.sh
+        run: |
+          chmod +x ./create_package.sh
+          ./create_package.sh "${{ github.event.inputs.version }}"
+
+      - name: Commit and push .dxt file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull origin main
+          git add download/
+          git commit -m "Add .dxt package for version ${{ github.event.inputs.version }}" || echo "No changes to commit"
+          git push origin main
+
