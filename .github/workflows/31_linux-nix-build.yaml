@@ -1,4 +1,4 @@
-name: 02_Linux Nix Static Build
+name: 05_Linux Nix Static Build
 
 on:
   workflow_dispatch:
