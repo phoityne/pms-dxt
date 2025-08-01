@@ -34,7 +34,7 @@ jobs:
         working-directory: pms/pty-mcp-server
         shell: bash
         run: |
-          echo "packages: ../\*" > cabal.project
+          printf '%s\n' "packages: ../*" > cabal.project
 
       - name: Build statically with Nix
         working-directory: pms/pty-mcp-server
