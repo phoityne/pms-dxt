@@ -30,6 +30,11 @@ jobs:
       - name: Set up Nix
         uses: cachix/install-nix-action@v25
 
+      - name: Show nix flake outputs
+        shell: bash
+        run: |
+          nix flake show github:input-output-hk/devx
+          
       - name: Create cabal.project file
         working-directory: pms/pty-mcp-server
         shell: bash
