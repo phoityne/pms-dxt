@@ -45,15 +45,13 @@ jobs:
         working-directory: pms/pty-mcp-server
         run: |
           mkdir -p fake-libutil
-          cat <<EOF > fake-libutil/libutil.h
-#ifndef _LIBUTIL_H
-#define _LIBUTIL_H
-
-#include <pty.h>
-#include <unistd.h>
-
-#endif
-EOF
+          echo '#ifndef _LIBUTIL_H' > fake-libutil/libutil.h
+          echo '#define _LIBUTIL_H' >> fake-libutil/libutil.h
+          echo '' >> fake-libutil/libutil.h
+          echo '#include <pty.h>' >> fake-libutil/libutil.h
+          echo '#include <unistd.h>' >> fake-libutil/libutil.h
+          echo '' >> fake-libutil/libutil.h
+          echo '#endif' >> fake-libutil/libutil.h
 
       - name: Build statically with Nix (with fake libutil)
         working-directory: pms/pty-mcp-server
