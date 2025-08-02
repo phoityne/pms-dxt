@@ -1,4 +1,4 @@
-name: 05_Linux Nix Static Build
+name: 05_pty-mcp-server-nix-shell-x86_64-unknown-linux-musl
 
 on:
   workflow_dispatch:
@@ -34,15 +34,31 @@ jobs:
 #        shell: bash
 #        run: |
 #          nix flake show github:input-output-hk/devx
-          
+
       - name: Create cabal.project file
         working-directory: pms/pty-mcp-server
         shell: bash
         run: |
           printf "packages: ../*\n" > cabal.project
 
-      - name: Build statically with Nix
+      - name: Inject fake libutil.h for musl
         working-directory: pms/pty-mcp-server
+        run: |
+          mkdir -p fake-libutil
+          cat <<EOF > fake-libutil/libutil.h
+#ifndef _LIBUTIL_H
+#define _LIBUTIL_H
+
+#include <pty.h>
+#include <unistd.h>
+
+#endif
+EOF
+
+      - name: Build statically with Nix (with fake libutil)
+        working-directory: pms/pty-mcp-server
+        env:
+          C_INCLUDE_PATH: ${{ github.workspace }}/pms/pty-mcp-server/fake-libutil
         run: |
           nix develop github:input-output-hk/devx#ghc96-static-iog-full -c bash -c '
             cabal update
@@ -58,14 +74,14 @@ jobs:
             echo "Binary not found"
             exit 1
           fi
-          cp "$BIN_PATH" bin/pty-mcp-server-linux-static
-          du -sk bin/pty-mcp-server-linux-static
-          strip bin/pty-mcp-server-linux-static || echo "strip failed"
-          du -sk bin/pty-mcp-server-linux-static
+          cp "$BIN_PATH" bin/pty-mcp-server-nix-shell-x86_64-unknown-linux-musl
+          du -sk bin/pty-mcp-server-nix-shell-x86_64-unknown-linux-musl
+          strip bin/pty-mcp-server-nix-shell-x86_64-unknown-linux-musl || echo "strip failed"
+          du -sk bin/pty-mcp-server-nix-shell-x86_64-unknown-linux-musl
 
       - name: Compress binary using xz
         run: |
-          xz -9 -T0 -k -f bin/pty-mcp-server-linux-static
+          xz -9 -T0 -k -f bin/pty-mcp-server-nix-shell-x86_64-unknown-linux-musl
 
       - name: Commit and push compressed binary
         shell: bash
@@ -74,6 +90,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
-          git add bin/pty-mcp-server-linux-static.xz
+          git add bin/pty-mcp-server-nix-shell-x86_64-unknown-linux-musl.xz
           git commit -m "Add compressed static binary for Linux (.xz)" || echo "No changes to commit"
           git push origin main
