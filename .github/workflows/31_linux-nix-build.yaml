@@ -60,7 +60,7 @@ jobs:
         run: |
           nix develop github:input-output-hk/devx#ghc96-static-iog-full -c bash -c '
             cabal update
-            cabal build exe:pty-mcp-server --ghc-options="-O2 -optl-static -optl-pthread -optl-static-libgcc"
+            cabal build all --ghc-options="-fPIC -optl-static -optl-pthread -optl-static-libgcc"
           '
 
       - name: Copy and strip binary
