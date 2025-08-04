@@ -14,35 +14,10 @@ jobs:
       - name: Checkout trigger repo
         uses: actions/checkout@v4
 
-      - name: Clone dependent repositories
-        shell: bash
-        run: |
-          mkdir -p pms
-          repos=("pty-mcp-server" \
-                 "pms-ui-request" "pms-ui-response" "pms-ui-notification" \
-                 "pms-infrastructure" "pms-infra-cmdrun" "pms-infra-procspawn" "pms-infra-socket" "pms-infra-watch" "pms-infra-serial" \
-                 "pms-application-service" "pms-domain-service" "pms-domain-model")
-          for repo in "${repos[@]}"; do
-            echo "Cloning $repo..."
-            git clone https://github.com/phoityne/$repo.git pms/$repo
-          done
-
       - name: Set up Nix
         uses: cachix/install-nix-action@v25
 
-#      - name: Show nix flake outputs
-#        shell: bash
-#        run: |
-#          nix flake show github:input-output-hk/devx
-
-      - name: Create cabal.project file
-        working-directory: pms/pty-mcp-server
-        shell: bash
-        run: |
-          printf "packages: ../*\n" > cabal.project
-
       - name: Inject fake libutil.h for musl
-        working-directory: pms/pty-mcp-server
         run: |
           mkdir -p fake-libutil
           echo '#ifndef _LIBUTIL_H' > fake-libutil/libutil.h
@@ -53,22 +28,24 @@ jobs:
           echo '' >> fake-libutil/libutil.h
           echo '#endif' >> fake-libutil/libutil.h
 
-      - name: Build statically with Nix (with fake libutil)
-        working-directory: pms/pty-mcp-server
+      - name: Install and build pty-mcp-server from Hackage
         env:
-          C_INCLUDE_PATH: ${{ github.workspace }}/pms/pty-mcp-server/fake-libutil
+          C_INCLUDE_PATH: ${{ github.workspace }}/fake-libutil
         run: |
           nix develop github:input-output-hk/devx#ghc96-static-iog-full -c bash -c '
             cabal update
-            cabal build all --ghc-options="-fPIC -optl-static -optl-pthread -optl-static-libgcc"
+            cabal install pty-mcp-server \
+              --installdir=bin \
+              --install-method=copy \
+              --overwrite-policy=always \
+              --ghc-options="-optl-static -optl-pthread -optl-static-libgcc"
           '
 
       - name: Copy and strip binary
         shell: bash
         run: |
-          mkdir -p bin
-          BIN_PATH=$(find pms/pty-mcp-server/dist-newstyle/build -type f -name pty-mcp-server | head -n1)
-          if [ -z "$BIN_PATH" ]; then
+          BIN_PATH=bin/pty-mcp-server
+          if [ ! -f "$BIN_PATH" ]; then
             echo "Binary not found"
             exit 1
           fi
