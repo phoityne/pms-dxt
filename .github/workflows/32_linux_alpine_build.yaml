@@ -58,7 +58,7 @@ jobs:
               # Build with static linking
               cd pms/pty-mcp-server &&
               C_INCLUDE_PATH=/workspace/fake-libutil \
-                cabal build --enable-executable-static \
+                cabal build --enable-executable-static --disable-shared \
                             --ghc-options="-optl-static -optl-pthread"
             '
 
