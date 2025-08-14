@@ -31,18 +31,35 @@ jobs:
         run: |
           docker run --rm \
             -v $PWD:/workspace \
-            -w /workspace/pms/pty-mcp-server \
+            -w /workspace \
             alpine:3 sh -c '
+              set -e
               apk --no-cache add binutils-gold curl gcc g++ git gmp-dev ncurses-dev ncurses-static \
                 libffi-dev make xz tar perl zlib-dev zlib-static sudo libc6-compat gmp-static &&
+              # Fake libutil.h for musl
+              mkdir -p /workspace/fake-libutil &&
+              echo "#ifndef _LIBUTIL_H" > /workspace/fake-libutil/libutil.h &&
+              echo "#define _LIBUTIL_H" >> /workspace/fake-libutil/libutil.h &&
+              echo "" >> /workspace/fake-libutil/libutil.h &&
+              echo "#include <pty.h>" >> /workspace/fake-libutil/libutil.h &&
+              echo "#include <unistd.h>" >> /workspace/fake-libutil/libutil.h &&
+              echo "" >> /workspace/fake-libutil/libutil.h &&
+              echo "#endif" >> /workspace/fake-libutil/libutil.h &&
+
+              # GHC/Cabal install
               curl --proto "=https" --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh &&
-              source /root/.ghcup/env &&
+              . /root/.ghcup/env &&
               ghcup install ghc 9.6.7 &&
               ghcup set ghc 9.6.7 &&
               ghcup install cabal latest &&
               ghcup set cabal latest &&
               cabal update &&
-              cabal build --enable-executable-static --ghc-options="-optl-static -optl-pthread"
+
+              # Build with static linking
+              cd pms/pty-mcp-server &&
+              C_INCLUDE_PATH=/workspace/fake-libutil \
+                cabal build --enable-executable-static \
+                            --ghc-options="-optl-static -optl-pthread"
             '
 
       - name: Copy binary to bin/
