@@ -1,4 +1,4 @@
-name: 03_Linux Static Build (Musl Docker)
+name: 03_Linux Static Build (Alpine Docker)
 
 on:
   workflow_dispatch:
