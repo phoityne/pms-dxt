@@ -15,7 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout trigger repo
+        uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Install dxt CLI
         run: npm install -g @anthropic-ai/dxt
@@ -27,6 +30,7 @@ jobs:
 
       - name: Commit and push .dxt file
         run: |
+          git lfs install
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main

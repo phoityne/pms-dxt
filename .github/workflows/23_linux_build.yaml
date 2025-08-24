@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout trigger repo
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Clone dependent repositories
         shell: bash
@@ -90,6 +92,7 @@ jobs:
       - name: Commit and push binary
         shell: bash
         run: |
+          git lfs install
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main
