@@ -1,0 +1,10 @@
+
+create_package.sh
+create_mcpb.sh
+*.pem
+*.key
+download/*
+.github
+.dxtignore
+.gitignore
+.gitattributes
