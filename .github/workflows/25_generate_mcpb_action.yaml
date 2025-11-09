@@ -1,0 +1,40 @@
+name: 05_Generate MCPB Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout trigger repo
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install dxt CLI
+        run: npm install -g @anthropic-ai/mcpb
+
+      - name: Run create_mcpb.sh
+        run: |
+          chmod +x ./create_mcpb.sh
+          ./create_mcpb.sh "${{ github.event.inputs.version }}"
+
+      - name: Commit and push .mcpb file
+        run: |
+          git lfs install
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull origin main
+          git add download/
+          git commit -m "Add .dxt package for version ${{ github.event.inputs.version }}" || echo "No changes to commit"
+          git push origin main
+
