@@ -19,7 +19,7 @@ mv bin/pty-mcp-server-windows-no-mingw.exe bin/pty-mcp-server.exe
 
 mcpb pack . download/pty-mcp-server-${version}.mcpb
 
-cp -p download/pty-mcp-server-${version}.mcpb download/pty-mcp-server-${version}.mcpb.zip
+zip download/pty-mcp-server-${version}.mcpb.zip download/pty-mcp-server-${version}.mcpb
 
 ls -la download
 
